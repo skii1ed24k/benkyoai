@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>勉強AIアシスタント</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>勉強AIアシスタント</h1>
+    <p>教科書の写真をアップロードすると、AIが問題を作成し、理解レベルを評価します。</p>
+
+    <label class="file-label">
+      画像を選択
+      <input type="file" id="imageInput" accept="image/*" />
+    </label>
+    <button id="analyzeBtn" disabled>問題を作成する</button>
+
+    <section class="result" id="resultSection" hidden>
+      <h2>認識結果</h2>
+      <pre id="extractedText"></pre>
+      <h2>AIの出力</h2>
+      <pre id="aiResult"></pre>
+    </section>
+
+    <div class="note">
+      <p>OpenAI APIキーを設定すると、より自然な問題と理解レベル評価ができます。</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

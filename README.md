@@ -1,50 +1,58 @@
 # benkyoai
 
-## 勉強AIアシスタント プロトタイプ
+## 勉強AIアシスタント（Vercel対応）
 
-教科書の写真をアップロードして、AIが問題を生成し、理解レベルを評価する試作アプリです。
+教科書の写真をアップロードして、AIが問題を作成し、理解レベルを評価するアプリです。
 
-### 含まれる機能
+### Vercelでの構成
 
-- 画像アップロードによるテキスト抽出（OCR）
-- 抽出した文章をAIに送信し、問題と理解レベルを生成
-- OpenAI APIキーがあれば実際のAI出力を利用
-- APIキー未設定時は簡易な質問を返すフォールバック
+- `public/` に静的フロントエンドを配置
+- ブラウザ側で `tesseract.js` を使ってOCRを実行
+- `api/analyze.py` で OpenAI にテキストを送信
+- `vercel.json` で API と静的ページをルーティング
 
-### 使い方
+### 使い方 (Vercel)
 
-1. Python環境を用意します。
-2. 依存パッケージをインストールします。
+1. Vercel CLI をインストールします。
+
+```bash
+npm install -g vercel
+```
+
+2. プロジェクトをデプロイします。
+
+```bash
+vercel
+```
+
+3. 環境変数に OpenAI API キーを設定します。
+
+```bash
+vercel env add OPENAI_API_KEY production
+```
+
+4. `OPENAI_API_KEY` を設定したら再デプロイします。
+
+```bash
+vercel --prod
+```
+
+### ローカル開発
+
+Vercel用には `public/` と `api/analyze.py` で動作します。ローカルで `app.py` を試す場合は追加パッケージが必要です。
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-```
-
-3. 日本語OCR用にTesseractをインストールします。
-
-```bash
+pip install pillow pytesseract
 brew install tesseract
-```
-
-4. OpenAIを使う場合はAPIキーを設定します。
-
-```bash
-export OPENAI_API_KEY="your_api_key"
-```
-
-5. アプリを起動します。
-
-```bash
 python app.py
 ```
 
-6. ブラウザで `http://127.0.0.1:5000` を開き、教科書の写真をアップロードします。
-
 ### 仕組み
 
-- `app.py` でFlaskサーバを立ち上げ、`/api/analyze` に画像を送信します。
-- `pytesseract` で画像から文字を抽出します。
-- OpenAI連携が有効ならAIに問題作成と理解レベル評価を依頼します。
+- `public/index.html` で画像を選び、ブラウザが `tesseract.js` でOCRを実行します。
+- 抽出したテキストを `POST /api/analyze` に送信します。
+- `api/analyze.py` が OpenAI を呼び出し、問題と理解レベルを生成します。
 - 結果を画面に表示します。

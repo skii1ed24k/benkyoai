@@ -6,10 +6,9 @@
 
 ### Vercelでの構成
 
-- `public/` に静的フロントエンドを配置
-- ブラウザ側で `tesseract.js` を使ってOCRを実行
-- `api/analyze.py` で OpenAI にテキストを送信
-- `vercel.json` で API と静的ページをルーティング
+- `app.py` を Vercel のルート Python 関数としてデプロイ
+- Flask が `templates/` の `index.html` と `static/` の静的ファイルを配信
+- `vercel.json` が全リクエストを `app.py` にルーティング
 
 ### 使い方 (Vercel)
 
@@ -36,6 +35,8 @@ vercel env add OPENAI_API_KEY production
 ```bash
 vercel --prod
 ```
+
+> `api/analyze.py` は旧来の API 用ファイルで、直接デプロイ構成では `app.py` がルートエンドポイントとして利用されます。
 
 ### ローカル開発
 

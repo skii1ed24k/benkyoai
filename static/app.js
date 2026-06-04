@@ -1,18 +1,24 @@
 const imageInput = document.getElementById("imageInput");
+const fileInfo = document.getElementById("fileInfo");
 const analyzeBtn = document.getElementById("analyzeBtn");
 const resultSection = document.getElementById("resultSection");
 const extractedText = document.getElementById("extractedText");
 const aiResult = document.getElementById("aiResult");
 
-let selectedFile = null;
+let selectedFiles = [];
 
 imageInput.addEventListener("change", (event) => {
-  selectedFile = event.target.files[0];
-  analyzeBtn.disabled = !selectedFile;
+  selectedFiles = Array.from(event.target.files);
+  analyzeBtn.disabled = selectedFiles.length === 0;
+  if (selectedFiles.length === 0) {
+    fileInfo.textContent = "選択された画像はありません。";
+  } else {
+    fileInfo.textContent = `${selectedFiles.length} 枚の画像が選択されました。`;
+  }
 });
 
 analyzeBtn.addEventListener("click", async () => {
-  if (!selectedFile) return;
+  if (selectedFiles.length === 0) return;
 
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = "分析中...";
@@ -21,7 +27,7 @@ analyzeBtn.addEventListener("click", async () => {
   aiResult.textContent = "";
 
   const formData = new FormData();
-  formData.append("image", selectedFile);
+  selectedFiles.forEach((file) => formData.append("image", file));
 
   try {
     const response = await fetch("/api/analyze", {

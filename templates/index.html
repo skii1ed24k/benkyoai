@@ -9,12 +9,13 @@
 <body>
   <div class="container">
     <h1>勉強AIアシスタント</h1>
-    <p>教科書の写真をアップロードすると、AIが問題を作成し、理解レベルを評価します。</p>
+    <p>複数の教科書画像をアップロードすると、AIがまとめて問題を作成し、理解レベルを評価します。</p>
 
     <label class="file-label">
-      画像を選択
-      <input type="file" id="imageInput" accept="image/*" />
+      画像を選択（複数可）
+      <input type="file" id="imageInput" accept="image/*" multiple />
     </label>
+    <div id="fileInfo" class="file-info">選択された画像はありません。</div>
     <button id="analyzeBtn" disabled>問題を作成する</button>
 
     <section class="result" id="resultSection" hidden>

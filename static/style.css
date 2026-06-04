@@ -7,6 +7,10 @@ body {
   color: #1f2937;
 }
 
+:root {
+  --correct-color: #10B981; /* match correct feedback color */
+}
+
 * {
   box-sizing: border-box;
 }
@@ -349,6 +353,14 @@ pre {
 
 .donut-svg {
   display: block;
+}
+
+.donut-svg circle {
+  transition: stroke-dashoffset 900ms cubic-bezier(.2,.9,.3,1);
+}
+
+.donut-progress {
+  stroke: var(--correct-color);
 }
 
 .donut-center {

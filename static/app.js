@@ -20,20 +20,27 @@ const FeedbackSound = {
     try {
       this.ensure();
       const ctx = this.ctx;
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = type;
-      o.frequency.value = freq;
-      o.connect(g);
-      g.connect(ctx.destination);
-      const now = ctx.currentTime + when;
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.18, now + 0.01);
-      o.start(now);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-      o.stop(now + duration + 0.02);
+      const play = () => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = type;
+        o.frequency.value = freq;
+        o.connect(g);
+        g.connect(ctx.destination);
+        const now = ctx.currentTime + when;
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.18, now + 0.01);
+        o.start(now);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        o.stop(now + duration + 0.02);
+      };
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(play).catch(() => {});
+      } else {
+        play();
+      }
     } catch (e) {
-      // ignore if audio context blocked
+      // ignore if audio context blocked or unavailable
     }
   },
   playCorrect() {
@@ -314,7 +321,19 @@ function showSummary() {
   prog.setAttribute('transform', 'rotate(-90)');
   prog.setAttribute('stroke-dasharray', `${c} ${c}`);
   const offset = Math.round(c * (1 - accuracy / 100));
-  prog.setAttribute('stroke-dashoffset', offset.toString());
+  // start full and animate to offset
+  prog.setAttribute('stroke-dashoffset', c.toString());
+  prog.classList.add('donut-progress');
+
+  // set CSS var color on container to match correct color
+  donut.style.setProperty('--donut-color', getComputedStyle(document.documentElement).getPropertyValue('--correct-color') || '#10B981');
+
+  // force paint then animate to final offset
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      prog.setAttribute('stroke-dashoffset', offset.toString());
+    });
+  });
 
   g.appendChild(bgCircle);
   g.appendChild(prog);
@@ -334,6 +353,23 @@ function showSummary() {
   summaryWrap.appendChild(textSummary);
 
   quizContainer.appendChild(summaryWrap);
+
+  // animate percent count up
+  const percentEl = summaryWrap.querySelector('.donut-percent');
+  if (percentEl) {
+    let start = null;
+    const duration = 900;
+    const from = 0;
+    const to = accuracy;
+    function step(ts) {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const current = Math.round(from + (to - from) * progress);
+      percentEl.textContent = `${current}%`;
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
 
   const wrong = quizState.questions
     .map((q, idx) => ({ q, idx }))

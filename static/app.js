@@ -193,9 +193,31 @@ function selectChoice(selectedIndex) {
 
   const result = document.createElement("div");
   result.className = isCorrect ? "correct" : "incorrect";
-  result.textContent = isCorrect
+
+  const icon = document.createElement("div");
+  icon.className = "result-icon";
+  if (isCorrect) {
+    icon.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6" fill="none" />
+        <path d="M7.5 12.5l2.5 2.5L16.5 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+  } else {
+    icon.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6" fill="none" />
+        <path d="M15 9L9 15M9 9l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+  }
+
+  const textSpan = document.createElement("div");
+  textSpan.className = "result-text";
+  textSpan.textContent = isCorrect
     ? `正解！ 問${(q.originalIndex||quizState.currentIndex)+1}: ${answerLabel}. ${selectedText}`
     : `不正解。問${(q.originalIndex||quizState.currentIndex)+1} の正解は ${correctLabel}. ${correctText}`;
+
+  result.appendChild(icon);
+  result.appendChild(textSpan);
   qDiv.appendChild(result);
 
   const expl = document.createElement("div");

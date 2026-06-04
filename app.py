@@ -60,8 +60,10 @@ def generate_questions_from_text(text):
                         ],
                     }
                 ],
-                "temperature": 0.7,
-                "maxOutputTokens": 800,
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "maxOutputTokens": 800,
+                },
             }
             resp = requests.post(url, headers=headers, json=body, timeout=20)
             resp.raise_for_status()
@@ -79,6 +81,17 @@ def generate_questions_from_text(text):
                         if isinstance(cand.get("outputText"), str):
                             return cand["outputText"]
                         content = cand.get("content")
+                        if isinstance(content, dict):
+                            parts = content.get("parts")
+                            if isinstance(parts, list):
+                                texts = []
+                                for item in parts:
+                                    if isinstance(item, dict) and isinstance(item.get("text"), str):
+                                        texts.append(item["text"])
+                                    elif isinstance(item, str):
+                                        texts.append(item)
+                                if texts:
+                                    return "\n".join(texts)
                         if isinstance(content, list):
                             parts = []
                             for item in content:

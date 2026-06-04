@@ -15,12 +15,22 @@ def extract_text_from_image(image):
 
 
 def build_ai_prompt(text):
+    # Ask the model to return a JSON-formatted 4-choice quiz for easier parsing in the frontend.
     return (
-        "以下の教科書の内容を読み取り、\n"
-        "1) 重要な問題を3問作成してください。\n"
-        "2) その範囲の理解レベルを「基礎」「標準」「発展」のいずれかで評価してください。\n"
-        "3) 簡潔な解説を記載してください。\n"
-        "4) 問題文と評価を分かりやすく出力してください。\n"
+        "以下の教科書の内容を読み取り、JSON形式で出力してください。\n"
+        "出力形式の例: {\n"
+        "  \"title\": \"教科書名または要約タイトル\",\n"
+        "  \"level\": \"基礎|標準|発展\",\n"
+        "  \"questions\": [\n"
+        "    {\n"
+        "      \"question\": \"問題文\",\n"
+        "      \"choices\": [\"選択肢A\", \"選択肢B\", \"選択肢C\", \"選択肢D\"],\n"
+        "      \"answer_index\": 0,  // 正しい選択肢の0ベースインデックス\n"
+        "      \"explanation\": \"簡潔な解説\"\n"
+        "    }\n"
+        "  ]\n"
+        "}\n"
+        "上記スキーマに従い、重要な問題を3問（それぞれ4択）作成してください。\n"
         "内容:\n" + text
     )
 
@@ -108,7 +118,14 @@ def generate_questions_from_text(text):
                 return str(d)
 
             answer = _extract_google_text(data).strip()
-            return answer
+            # Try to parse JSON output from the model for structured quiz data
+            try:
+                import json
+
+                parsed = json.loads(answer)
+                return parsed
+            except Exception:
+                return answer
         except requests.exceptions.HTTPError as http_exc:
             resp = getattr(http_exc, 'response', None)
             status = getattr(resp, 'status_code', None)

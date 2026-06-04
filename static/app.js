@@ -5,6 +5,7 @@ const analyzeBtn = document.getElementById("analyzeBtn");
 const resultSection = document.getElementById("resultSection");
 const extractedText = document.getElementById("extractedText");
 const aiResult = document.getElementById("aiResult");
+const quizContainer = document.getElementById("quizContainer");
 
 let selectedFiles = [];
 
@@ -68,7 +69,14 @@ analyzeBtn.addEventListener("click", async () => {
 
     const data = await response.json();
     if (response.ok) {
-      aiResult.textContent = data.ai_result;
+      // If backend returned structured JSON, render interactive quiz
+      if (data.ai_result && typeof data.ai_result === "object" && data.ai_result.questions) {
+        aiResult.textContent = "(クイズを表示しています)";
+        renderQuiz(data.ai_result);
+      } else {
+        aiResult.textContent = data.ai_result;
+        quizContainer.innerHTML = "";
+      }
     } else {
       aiResult.textContent = `エラー: ${data.error}`;
     }
@@ -81,3 +89,50 @@ analyzeBtn.addEventListener("click", async () => {
     ocrStatus.textContent = "";
   }
 });
+
+function renderQuiz(quiz) {
+  quizContainer.innerHTML = "";
+  const title = document.createElement("h3");
+  title.textContent = quiz.title || "AI生成クイズ";
+  quizContainer.appendChild(title);
+
+  const level = document.createElement("p");
+  level.textContent = quiz.level ? `推定レベル: ${quiz.level}` : "";
+  quizContainer.appendChild(level);
+
+  quiz.questions.forEach((q, qi) => {
+    const qDiv = document.createElement("div");
+    qDiv.className = "quiz-question";
+    const qText = document.createElement("p");
+    qText.textContent = `${qi + 1}. ${q.question}`;
+    qDiv.appendChild(qText);
+
+    const choicesList = document.createElement("ul");
+    choicesList.className = "choices";
+    q.choices.forEach((choice, ci) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = choice;
+      btn.addEventListener("click", () => {
+        // Disable all buttons for this question
+        Array.from(choicesList.querySelectorAll("button")).forEach(b => b.disabled = true);
+        const isCorrect = ci === q.answer_index;
+        const result = document.createElement("div");
+        result.className = isCorrect ? "correct" : "incorrect";
+        result.textContent = isCorrect ? "正解！" : `不正解。正しい答え: ${q.choices[q.answer_index]}`;
+        qDiv.appendChild(result);
+
+        const expl = document.createElement("div");
+        expl.className = "explanation";
+        expl.textContent = q.explanation || "解説はありません。";
+        qDiv.appendChild(expl);
+      });
+      li.appendChild(btn);
+      choicesList.appendChild(li);
+    });
+
+    qDiv.appendChild(choicesList);
+    quizContainer.appendChild(qDiv);
+  });
+}

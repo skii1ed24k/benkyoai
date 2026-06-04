@@ -50,7 +50,7 @@ def generate_questions_from_text(text):
         try:
             if hasattr(openai, "responses"):
                 response = openai.responses.create(
-                    model="gemini-1.5",
+                    model="gemini-3.1-flash-lite",
                     input=[
                         {"role": "system", "content": "あなたは日本語の教育アシスタントです。"},
                         {"role": "user", "content": prompt},

@@ -83,6 +83,15 @@ def generate_questions_from_text(text):
 
             answer = _extract_google_text(data).strip()
             return answer
+        except requests.exceptions.HTTPError as http_exc:
+            resp = getattr(http_exc, 'response', None)
+            status = getattr(resp, 'status_code', None)
+            body = getattr(resp, 'text', '')
+            hint = (
+                "404が返されました。APIキー、プロジェクトのAPI有効化、"
+                "またはAPIキーのリファラー/IP制限を確認してください。"
+            ) if status == 404 else "HTTPエラーが発生しました。"
+            return f"AI生成中にエラーが発生しました: {status} {body[:1000]} — {hint}"
         except Exception as exc:
             return f"AI生成中にエラーが発生しました: {exc}"
 

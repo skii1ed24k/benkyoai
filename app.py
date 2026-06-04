@@ -15,22 +15,25 @@ def extract_text_from_image(image):
 
 
 def build_ai_prompt(text):
-    # Ask the model to return a JSON-formatted 4-choice quiz for easier parsing in the frontend.
+    # Ask the model to return a strict JSON-formatted 4-choice quiz (no extra text).
     return (
-        "以下の教科書の内容を読み取り、JSON形式で出力してください。\n"
-        "出力形式の例: {\n"
+        "以下の教科書の内容を読み取り、厳密なJSONのみを出力してください。\n"
+        "余分な説明や会話文を含めないでください。\n"
+        "出力スキーマ: \n"
+        "{\n"
         "  \"title\": \"教科書名または要約タイトル\",\n"
         "  \"level\": \"基礎|標準|発展\",\n"
         "  \"questions\": [\n"
         "    {\n"
         "      \"question\": \"問題文\",\n"
         "      \"choices\": [\"選択肢A\", \"選択肢B\", \"選択肢C\", \"選択肢D\"],\n"
-        "      \"answer_index\": 0,  // 正しい選択肢の0ベースインデックス\n"
+        "      \"answer_index\": 0,\n"
         "      \"explanation\": \"簡潔な解説\"\n"
         "    }\n"
         "  ]\n"
         "}\n"
-        "上記スキーマに従い、重要な問題を3問（それぞれ4択）作成してください。\n"
+        "上記スキーマに正確に従って、重要な問題を3問（それぞれ4択）作成してください。\n"
+        "出力は有効なJSONでなければなりません。\n"
         "内容:\n" + text
     )
 
@@ -118,11 +121,14 @@ def generate_questions_from_text(text):
                 return str(d)
 
             answer = _extract_google_text(data).strip()
-            # Try to parse JSON output from the model for structured quiz data
+            # Try to parse JSON output from the model for structured quiz data.
+            # Be tolerant: extract the first JSON object found in the text.
             try:
-                import json
+                import json, re
 
-                parsed = json.loads(answer)
+                m = re.search(r"(\{[\s\S]*\})", answer)
+                json_text = m.group(1) if m else answer
+                parsed = json.loads(json_text)
                 return parsed
             except Exception:
                 return answer

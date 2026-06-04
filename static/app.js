@@ -99,148 +99,141 @@ function renderQuiz(quiz, options = {}) {
     originalIndex: index,
   }));
 
-  if (!options.isRetry) {
-    quizState = {
-      quizTitle: quiz.title || "AI生成クイズ",
-      quizLevel: quiz.level || "",
-      originalQuestions: quiz.questions.map((q, index) => ({
-        ...q,
-        originalIndex: index,
-      })),
-      answers: Array(questions.length).fill(null),
-      questions,
-      isRetry: false,
-    };
-  } else {
-    quizState = {
-      ...quizState,
-      questions,
-      answers: Array(questions.length).fill(null),
-      isRetry: true,
-    };
-  }
+  quizState = {
+    quizTitle: quiz.title || "AI生成クイズ",
+    quizLevel: quiz.level || "",
+    originalQuestions: quiz.questions ? quiz.questions.map((q, index) => ({ ...q, originalIndex: index })) : [],
+    questions,
+    answers: Array(questions.length).fill(null),
+    currentIndex: 0,
+    isRetry: !!options.isRetry,
+  };
 
-  quizContainer.innerHTML = "";
-
-  const title = document.createElement("h3");
-  title.textContent = options.isRetry ? "間違えた問題の再挑戦" : quizState.quizTitle;
-  quizContainer.appendChild(title);
-
-  const level = document.createElement("p");
-  level.textContent = quizState.quizLevel ? `推定レベル: ${quizState.quizLevel}` : "";
-  quizContainer.appendChild(level);
-
-  quizState.questions.forEach((q, qi) => {
-    const qDiv = document.createElement("div");
-    qDiv.className = "quiz-question";
-    const questionNumber = options.isRetry ? q.originalIndex + 1 : qi + 1;
-    const qText = document.createElement("p");
-    qText.textContent = `${questionNumber}. ${q.question}`;
-    qDiv.appendChild(qText);
-
-    const choicesList = document.createElement("ul");
-    choicesList.className = "choices";
-    q.choices.forEach((choice, ci) => {
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      const label = choiceLabels[ci] || `${ci + 1}`;
-      btn.textContent = `${label}. ${choice}`;
-      btn.addEventListener("click", () => handleAnswer(qDiv, q, questionNumber, qi, ci));
-      li.appendChild(btn);
-      choicesList.appendChild(li);
-    });
-
-    qDiv.appendChild(choicesList);
-    quizContainer.appendChild(qDiv);
-  });
-
-  const summaryBox = document.createElement("div");
-  summaryBox.id = "quizSummary";
-  quizContainer.appendChild(summaryBox);
-  updateQuizSummary();
+  renderQuestion();
 }
 
-function handleAnswer(questionDiv, question, questionNumber, questionIndex, selectedIndex) {
-  if (!quizState || questionIndex == null) return;
-  if (quizState.answers[questionIndex] !== null) return;
+function renderQuestion() {
+  quizContainer.innerHTML = "";
 
-  quizState.answers[questionIndex] = selectedIndex;
+  const header = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = quizState.isRetry ? "間違えた問題の再挑戦" : quizState.quizTitle;
+  header.appendChild(title);
+  const level = document.createElement("p");
+  level.textContent = quizState.quizLevel ? `推定レベル: ${quizState.quizLevel}` : "";
+  header.appendChild(level);
+  quizContainer.appendChild(header);
 
-  const choicesList = questionDiv.querySelector(".choices");
-  if (choicesList) {
-    Array.from(choicesList.querySelectorAll("button")).forEach(b => (b.disabled = true));
-  }
+  const q = quizState.questions[quizState.currentIndex];
+  const qDiv = document.createElement("div");
+  qDiv.className = "quiz-question";
+  const qText = document.createElement("p");
+  const displayNumber = q.originalIndex != null ? q.originalIndex + 1 : quizState.currentIndex + 1;
+  qText.textContent = `${displayNumber}. ${q.question}`;
+  qDiv.appendChild(qText);
 
-  const isCorrect = selectedIndex === question.answer_index;
+  const choicesList = document.createElement("ul");
+  choicesList.className = "choices";
+  q.choices.forEach((choice, ci) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    const label = choiceLabels[ci] || `${ci + 1}`;
+    btn.textContent = `${label}. ${choice}`;
+    btn.addEventListener("click", () => selectChoice(ci));
+    li.appendChild(btn);
+    choicesList.appendChild(li);
+  });
+
+  qDiv.appendChild(choicesList);
+  quizContainer.appendChild(qDiv);
+
+  const controlBar = document.createElement("div");
+  controlBar.className = "control-bar";
+  const progress = document.createElement("div");
+  progress.textContent = `問題 ${quizState.currentIndex + 1}/${quizState.questions.length}`;
+  controlBar.appendChild(progress);
+
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.textContent = quizState.currentIndex + 1 === quizState.questions.length ? "結果を見る" : "次へ";
+  nextBtn.disabled = true;
+  nextBtn.addEventListener("click", () => {
+    if (quizState.currentIndex + 1 >= quizState.questions.length) {
+      showSummary();
+    } else {
+      quizState.currentIndex += 1;
+      renderQuestion();
+    }
+  });
+  controlBar.appendChild(nextBtn);
+
+  quizContainer.appendChild(controlBar);
+
+  // expose helper to enable next when answered
+  quizContainer._enableNext = () => { nextBtn.disabled = false; };
+}
+
+function selectChoice(selectedIndex) {
+  const q = quizState.questions[quizState.currentIndex];
+  if (!q) return;
+  if (quizState.answers[quizState.currentIndex] !== null) return;
+
+  quizState.answers[quizState.currentIndex] = selectedIndex;
+
+  const qDiv = quizContainer.querySelector('.quiz-question');
+  const choicesBtns = qDiv.querySelectorAll('button');
+  choicesBtns.forEach(b => b.disabled = true);
+
+  const isCorrect = selectedIndex === q.answer_index;
   const answerLabel = choiceLabels[selectedIndex] || `${selectedIndex + 1}`;
-  const correctLabel = choiceLabels[question.answer_index] || `${question.answer_index + 1}`;
-  const selectedText = question.choices[selectedIndex];
-  const correctText = question.choices[question.answer_index];
+  const correctLabel = choiceLabels[q.answer_index] || `${q.answer_index + 1}`;
+  const selectedText = q.choices[selectedIndex];
+  const correctText = q.choices[q.answer_index];
 
   const result = document.createElement("div");
   result.className = isCorrect ? "correct" : "incorrect";
   result.textContent = isCorrect
-    ? `正解！ 問${questionNumber}: ${answerLabel}. ${selectedText}`
-    : `不正解。問${questionNumber} の正解は ${correctLabel}. ${correctText}`;
-  questionDiv.appendChild(result);
+    ? `正解！ 問${(q.originalIndex||quizState.currentIndex)+1}: ${answerLabel}. ${selectedText}`
+    : `不正解。問${(q.originalIndex||quizState.currentIndex)+1} の正解は ${correctLabel}. ${correctText}`;
+  qDiv.appendChild(result);
 
   const expl = document.createElement("div");
   expl.className = "explanation";
-  expl.textContent = `解説: ${question.explanation || "解説はありません。"}`;
-  questionDiv.appendChild(expl);
+  expl.textContent = `解説: ${q.explanation || "解説はありません。"}`;
+  qDiv.appendChild(expl);
 
-  updateQuizSummary();
+  if (quizContainer._enableNext) quizContainer._enableNext();
 }
 
-function updateQuizSummary() {
-  const summaryBox = document.getElementById("quizSummary");
-  if (!summaryBox || !quizState) return;
+function showSummary() {
+  quizContainer.innerHTML = "";
+  const total = quizState.questions.length;
+  const correct = quizState.questions.reduce((acc, q, idx) => acc + (quizState.answers[idx] === q.answer_index ? 1 : 0), 0);
+  const accuracy = Math.round((correct / total) * 100);
 
-  const answeredCount = quizState.answers.filter(ans => ans !== null).length;
-  const totalCount = quizState.questions.length;
-  summaryBox.innerHTML = "";
+  const res = document.createElement('div');
+  res.className = 'quiz-result';
+  res.textContent = `全 ${total} 問中 ${correct} 問正解、正答率 ${accuracy}%`;
+  quizContainer.appendChild(res);
 
-  if (answeredCount < totalCount) {
-    summaryBox.textContent = `回答済み: ${answeredCount}/${totalCount}`;
-    return;
-  }
+  const wrong = quizState.questions
+    .map((q, idx) => ({ q, idx }))
+    .filter(item => quizState.answers[item.idx] !== item.q.answer_index);
 
-  const correctCount = quizState.questions.reduce((count, question, index) => {
-    return count + (quizState.answers[index] === question.answer_index ? 1 : 0);
-  }, 0);
-  const accuracy = Math.round((correctCount / totalCount) * 100);
-
-  const resultText = document.createElement("div");
-  resultText.className = "quiz-result";
-  resultText.textContent = `全 ${totalCount} 問中 ${correctCount} 問正解、正答率 ${accuracy}%`; 
-  summaryBox.appendChild(resultText);
-
-  const wrongIndices = quizState.questions
-    .map((q, index) => ({
-      originalIndex: q.originalIndex,
-      index,
-      isCorrect: quizState.answers[index] === q.answer_index,
-    }))
-    .filter(item => !item.isCorrect);
-
-  if (wrongIndices.length > 0 && !quizState.isRetry) {
-    const retryButton = document.createElement("button");
-    retryButton.type = "button";
-    retryButton.textContent = `間違えた ${wrongIndices.length} 問をもう一度解く`;
-    retryButton.addEventListener("click", () => {
-      const retryQuestions = wrongIndices.map(item => quizState.questions[item.index]);
-      renderQuiz({
-        title: quizState.quizTitle,
-        level: quizState.quizLevel,
-        questions: retryQuestions,
-      }, { isRetry: true, questions: retryQuestions });
+  if (wrong.length > 0 && !quizState.isRetry) {
+    const retryBtn = document.createElement('button');
+    retryBtn.type = 'button';
+    retryBtn.textContent = `間違えた ${wrong.length} 問をもう一度解く`;
+    retryBtn.addEventListener('click', () => {
+      const retryQuestions = wrong.map(item => ({ ...item.q }));
+      renderQuiz({ title: quizState.quizTitle, level: quizState.quizLevel, questions: retryQuestions }, { isRetry: true });
     });
-    summaryBox.appendChild(retryButton);
-  } else if (wrongIndices.length === 0) {
-    const perfect = document.createElement("div");
-    perfect.className = "perfect-score";
-    perfect.textContent = "全問正解です！おめでとうございます。";
-    summaryBox.appendChild(perfect);
+    quizContainer.appendChild(retryBtn);
+  } else if (wrong.length === 0) {
+    const perfect = document.createElement('div');
+    perfect.className = 'perfect-score';
+    perfect.textContent = '全問正解です！おめでとうございます。';
+    quizContainer.appendChild(perfect);
   }
 }

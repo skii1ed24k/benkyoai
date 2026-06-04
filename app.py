@@ -2,20 +2,13 @@ from flask import Flask, render_template, request, jsonify
 import os
 
 app = Flask(__name__)
-
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
-try:
-    import openai
-    if OPENAI_API_KEY:
-        openai.api_key = OPENAI_API_KEY
-except ImportError:
-    openai = None
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+GOOGLE_MODEL = os.environ.get("GOOGLE_MODEL", "models/text-bison-001")
 
 
 def extract_text_from_image(image):
-    text = pytesseract.image_to_string(image, lang="jpn+eng")
-    return text.strip()
+    # Server-side OCR is not used in this deployment (client-side Tesseract.js is used).
+    raise RuntimeError("Server-side OCR is disabled. Use client-side OCR and send text to the API.")
 
 
 def build_ai_prompt(text):
@@ -45,34 +38,55 @@ def extract_response_text(response):
 
 
 def generate_questions_from_text(text):
-    if openai and OPENAI_API_KEY:
+    # Prefer Google Generative API if GOOGLE_API_KEY is provided
+    if GOOGLE_API_KEY:
         prompt = build_ai_prompt(text)
         try:
-            if hasattr(openai, "responses"):
-                response = openai.responses.create(
-                    model="gemini-3.1-flash-lite",
-                    input=[
-                        {"role": "system", "content": "あなたは日本語の教育アシスタントです。"},
-                        {"role": "user", "content": prompt},
-                    ],
-                    temperature=0.7,
-                    max_output_tokens=800,
-                )
-                answer = extract_response_text(response)
-            else:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "あなたは日本語の教育アシスタントです。"},
-                        {"role": "user", "content": prompt},
-                    ],
-                    temperature=0.7,
-                    max_tokens=800,
-                )
-                answer = response.choices[0].message.content.strip()
+            import requests
+
+            url = f"https://generativelanguage.googleapis.com/v1beta2/{GOOGLE_MODEL}:generateText?key={GOOGLE_API_KEY}"
+            body = {
+                "prompt": {"text": prompt},
+                "temperature": 0.7,
+                "maxOutputTokens": 800,
+            }
+            resp = requests.post(url, json=body, timeout=20)
+            resp.raise_for_status()
+            data = resp.json()
+
+            # Extract generated text from common response shapes
+            def _extract_google_text(d):
+                if not isinstance(d, dict):
+                    return str(d)
+                # v1beta2: candidates -> [ { output: "..." } ]
+                cands = d.get("candidates") or d.get("candidates")
+                if cands and isinstance(cands, list) and len(cands) > 0:
+                    cand = cands[0]
+                    if isinstance(cand, dict):
+                        for key in ("output", "content", "text"):
+                            if key in cand and isinstance(cand[key], str):
+                                return cand[key]
+                        # content may be a list of parts
+                        cont = cand.get("content")
+                        if isinstance(cont, list):
+                            parts = []
+                            for item in cont:
+                                if isinstance(item, dict):
+                                    if "text" in item and isinstance(item["text"], str):
+                                        parts.append(item["text"]) 
+                                elif isinstance(item, str):
+                                    parts.append(item)
+                            if parts:
+                                return "\n".join(parts)
+                # fallback to stringifying whole response
+                return str(d)
+
+            answer = _extract_google_text(data).strip()
             return answer
         except Exception as exc:
             return f"AI生成中にエラーが発生しました: {exc}"
+
+    # OpenAI integration removed. If GOOGLE_API_KEY is not set, provide a simple fallback.
 
     questions = [
         "1. ここで説明されている主要なポイントは何ですか？",

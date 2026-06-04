@@ -75,7 +75,9 @@ def generate_questions_from_text(text):
                 ],
                 "generationConfig": {
                     "temperature": 0.7,
-                    "maxOutputTokens": 800,
+                    "topP": 0.9,
+                    "maxOutputTokens": 1200,
+                    "responseMimeType": "application/json",
                 },
             }
             resp = requests.post(url, headers=headers, json=body, timeout=20)
@@ -126,8 +128,19 @@ def generate_questions_from_text(text):
             try:
                 import json, re
 
-                m = re.search(r"(\{[\s\S]*\})", answer)
-                json_text = m.group(1) if m else answer
+                json_text = answer
+                if json_text.strip().startswith("{") and not json_text.strip().endswith("}" ):
+                    open_braces = json_text.count("{")
+                    close_braces = json_text.count("}")
+                    if open_braces > close_braces:
+                        json_text += "}" * (open_braces - close_braces)
+                    open_brackets = json_text.count("[")
+                    close_brackets = json_text.count("]")
+                    if open_brackets > close_brackets:
+                        json_text += "]" * (open_brackets - close_brackets)
+
+                m = re.search(r"(\{[\s\S]*\})", json_text)
+                json_text = m.group(1) if m else json_text
                 parsed = json.loads(json_text)
                 return parsed
             except Exception:

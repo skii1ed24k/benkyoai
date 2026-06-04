@@ -91,6 +91,8 @@ analyzeBtn.addEventListener("click", async () => {
   }
 });
 
+const choiceLabels = ["A", "B", "C", "D"];
+
 function renderQuiz(quiz, options = {}) {
   const questions = options.questions || quiz.questions.map((q, index) => ({
     ...q,
@@ -131,8 +133,9 @@ function renderQuiz(quiz, options = {}) {
   quizState.questions.forEach((q, qi) => {
     const qDiv = document.createElement("div");
     qDiv.className = "quiz-question";
+    const questionNumber = options.isRetry ? q.originalIndex + 1 : qi + 1;
     const qText = document.createElement("p");
-    qText.textContent = `${options.isRetry ? q.originalIndex + 1 : qi + 1}. ${q.question}`;
+    qText.textContent = `${questionNumber}. ${q.question}`;
     qDiv.appendChild(qText);
 
     const choicesList = document.createElement("ul");
@@ -141,8 +144,9 @@ function renderQuiz(quiz, options = {}) {
       const li = document.createElement("li");
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.textContent = choice;
-      btn.addEventListener("click", () => handleAnswer(qDiv, q, qi, ci));
+      const label = choiceLabels[ci] || `${ci + 1}`;
+      btn.textContent = `${label}. ${choice}`;
+      btn.addEventListener("click", () => handleAnswer(qDiv, q, questionNumber, qi, ci));
       li.appendChild(btn);
       choicesList.appendChild(li);
     });
@@ -157,7 +161,7 @@ function renderQuiz(quiz, options = {}) {
   updateQuizSummary();
 }
 
-function handleAnswer(questionDiv, question, questionIndex, selectedIndex) {
+function handleAnswer(questionDiv, question, questionNumber, questionIndex, selectedIndex) {
   if (!quizState || questionIndex == null) return;
   if (quizState.answers[questionIndex] !== null) return;
 
@@ -169,14 +173,21 @@ function handleAnswer(questionDiv, question, questionIndex, selectedIndex) {
   }
 
   const isCorrect = selectedIndex === question.answer_index;
+  const answerLabel = choiceLabels[selectedIndex] || `${selectedIndex + 1}`;
+  const correctLabel = choiceLabels[question.answer_index] || `${question.answer_index + 1}`;
+  const selectedText = question.choices[selectedIndex];
+  const correctText = question.choices[question.answer_index];
+
   const result = document.createElement("div");
   result.className = isCorrect ? "correct" : "incorrect";
-  result.textContent = isCorrect ? "正解！" : `不正解。正しい答え: ${question.choices[question.answer_index]}`;
+  result.textContent = isCorrect
+    ? `正解！ 問${questionNumber}: ${answerLabel}. ${selectedText}`
+    : `不正解。問${questionNumber} の正解は ${correctLabel}. ${correctText}`;
   questionDiv.appendChild(result);
 
   const expl = document.createElement("div");
   expl.className = "explanation";
-  expl.textContent = question.explanation || "解説はありません。";
+  expl.textContent = `解説: ${question.explanation || "解説はありません。"}`;
   questionDiv.appendChild(expl);
 
   updateQuizSummary();

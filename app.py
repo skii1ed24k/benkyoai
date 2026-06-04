@@ -3,7 +3,10 @@ import os
 
 app = Flask(__name__)
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
-GOOGLE_MODEL = os.environ.get("GOOGLE_MODEL", "models/text-bison-001")
+# Use Gemini 3.1 Flash-Lite free-tier model by default for lower-cost / free usage.
+# Can be overridden by setting the `GOOGLE_MODEL` env var to a full model path like
+# "models/gemini-3.1-flash-lite" or another supported model name.
+GOOGLE_MODEL = os.environ.get("GOOGLE_MODEL", "models/gemini-3.1-flash-lite")
 
 
 def extract_text_from_image(image):

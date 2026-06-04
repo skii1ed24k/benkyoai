@@ -10,6 +10,43 @@ const quizContainer = document.getElementById("quizContainer");
 let selectedFiles = [];
 let quizState = null;
 
+// Simple WebAudio helper for feedback sounds
+const FeedbackSound = {
+  ctx: null,
+  ensure() {
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  },
+  playTone(freq, when = 0, duration = 0.18, type = 'sine') {
+    try {
+      this.ensure();
+      const ctx = this.ctx;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type;
+      o.frequency.value = freq;
+      o.connect(g);
+      g.connect(ctx.destination);
+      const now = ctx.currentTime + when;
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.18, now + 0.01);
+      o.start(now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      o.stop(now + duration + 0.02);
+    } catch (e) {
+      // ignore if audio context blocked
+    }
+  },
+  playCorrect() {
+    // two rising tones
+    this.playTone(740, 0, 0.16, 'sine');
+    this.playTone(1040, 0.12, 0.12, 'sine');
+  },
+  playIncorrect() {
+    // low buzzer
+    this.playTone(180, 0, 0.28, 'sawtooth');
+  }
+};
+
 imageInput.addEventListener("change", (event) => {
   selectedFiles = Array.from(event.target.files);
   analyzeBtn.disabled = selectedFiles.length === 0;
@@ -197,17 +234,9 @@ function selectChoice(selectedIndex) {
   const icon = document.createElement("div");
   icon.className = "result-icon";
   if (isCorrect) {
-    icon.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6" fill="none" />
-        <path d="M7.5 12.5l2.5 2.5L16.5 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>`;
+    icon.textContent = "⭕";
   } else {
-    icon.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6" fill="none" />
-        <path d="M15 9L9 15M9 9l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>`;
+    icon.textContent = "❌";
   }
 
   const textSpan = document.createElement("div");
@@ -224,6 +253,18 @@ function selectChoice(selectedIndex) {
   expl.className = "explanation";
   expl.textContent = `解説: ${q.explanation || "解説はありません。"}`;
   qDiv.appendChild(expl);
+  // play sound and animate icon
+  setTimeout(() => {
+    if (isCorrect) {
+      icon.classList.add('pop');
+      FeedbackSound.playCorrect();
+    } else {
+      icon.classList.add('shake');
+      FeedbackSound.playIncorrect();
+    }
+    // remove animation class after it finishes
+    setTimeout(() => { icon.classList.remove('pop'); icon.classList.remove('shake'); }, 800);
+  }, 40);
 
   if (quizContainer._enableNext) quizContainer._enableNext();
 }

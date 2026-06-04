@@ -8,6 +8,7 @@ const aiResult = document.getElementById("aiResult");
 const quizContainer = document.getElementById("quizContainer");
 
 let selectedFiles = [];
+let quizState = null;
 
 imageInput.addEventListener("change", (event) => {
   selectedFiles = Array.from(event.target.files);
@@ -90,21 +91,48 @@ analyzeBtn.addEventListener("click", async () => {
   }
 });
 
-function renderQuiz(quiz) {
+function renderQuiz(quiz, options = {}) {
+  const questions = options.questions || quiz.questions.map((q, index) => ({
+    ...q,
+    originalIndex: index,
+  }));
+
+  if (!options.isRetry) {
+    quizState = {
+      quizTitle: quiz.title || "AI生成クイズ",
+      quizLevel: quiz.level || "",
+      originalQuestions: quiz.questions.map((q, index) => ({
+        ...q,
+        originalIndex: index,
+      })),
+      answers: Array(questions.length).fill(null),
+      questions,
+      isRetry: false,
+    };
+  } else {
+    quizState = {
+      ...quizState,
+      questions,
+      answers: Array(questions.length).fill(null),
+      isRetry: true,
+    };
+  }
+
   quizContainer.innerHTML = "";
+
   const title = document.createElement("h3");
-  title.textContent = quiz.title || "AI生成クイズ";
+  title.textContent = options.isRetry ? "間違えた問題の再挑戦" : quizState.quizTitle;
   quizContainer.appendChild(title);
 
   const level = document.createElement("p");
-  level.textContent = quiz.level ? `推定レベル: ${quiz.level}` : "";
+  level.textContent = quizState.quizLevel ? `推定レベル: ${quizState.quizLevel}` : "";
   quizContainer.appendChild(level);
 
-  quiz.questions.forEach((q, qi) => {
+  quizState.questions.forEach((q, qi) => {
     const qDiv = document.createElement("div");
     qDiv.className = "quiz-question";
     const qText = document.createElement("p");
-    qText.textContent = `${qi + 1}. ${q.question}`;
+    qText.textContent = `${options.isRetry ? q.originalIndex + 1 : qi + 1}. ${q.question}`;
     qDiv.appendChild(qText);
 
     const choicesList = document.createElement("ul");
@@ -114,20 +142,7 @@ function renderQuiz(quiz) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = choice;
-      btn.addEventListener("click", () => {
-        // Disable all buttons for this question
-        Array.from(choicesList.querySelectorAll("button")).forEach(b => b.disabled = true);
-        const isCorrect = ci === q.answer_index;
-        const result = document.createElement("div");
-        result.className = isCorrect ? "correct" : "incorrect";
-        result.textContent = isCorrect ? "正解！" : `不正解。正しい答え: ${q.choices[q.answer_index]}`;
-        qDiv.appendChild(result);
-
-        const expl = document.createElement("div");
-        expl.className = "explanation";
-        expl.textContent = q.explanation || "解説はありません。";
-        qDiv.appendChild(expl);
-      });
+      btn.addEventListener("click", () => handleAnswer(qDiv, q, qi, ci));
       li.appendChild(btn);
       choicesList.appendChild(li);
     });
@@ -135,4 +150,86 @@ function renderQuiz(quiz) {
     qDiv.appendChild(choicesList);
     quizContainer.appendChild(qDiv);
   });
+
+  const summaryBox = document.createElement("div");
+  summaryBox.id = "quizSummary";
+  quizContainer.appendChild(summaryBox);
+  updateQuizSummary();
+}
+
+function handleAnswer(questionDiv, question, questionIndex, selectedIndex) {
+  if (!quizState || questionIndex == null) return;
+  if (quizState.answers[questionIndex] !== null) return;
+
+  quizState.answers[questionIndex] = selectedIndex;
+
+  const choicesList = questionDiv.querySelector(".choices");
+  if (choicesList) {
+    Array.from(choicesList.querySelectorAll("button")).forEach(b => (b.disabled = true));
+  }
+
+  const isCorrect = selectedIndex === question.answer_index;
+  const result = document.createElement("div");
+  result.className = isCorrect ? "correct" : "incorrect";
+  result.textContent = isCorrect ? "正解！" : `不正解。正しい答え: ${question.choices[question.answer_index]}`;
+  questionDiv.appendChild(result);
+
+  const expl = document.createElement("div");
+  expl.className = "explanation";
+  expl.textContent = question.explanation || "解説はありません。";
+  questionDiv.appendChild(expl);
+
+  updateQuizSummary();
+}
+
+function updateQuizSummary() {
+  const summaryBox = document.getElementById("quizSummary");
+  if (!summaryBox || !quizState) return;
+
+  const answeredCount = quizState.answers.filter(ans => ans !== null).length;
+  const totalCount = quizState.questions.length;
+  summaryBox.innerHTML = "";
+
+  if (answeredCount < totalCount) {
+    summaryBox.textContent = `回答済み: ${answeredCount}/${totalCount}`;
+    return;
+  }
+
+  const correctCount = quizState.questions.reduce((count, question, index) => {
+    return count + (quizState.answers[index] === question.answer_index ? 1 : 0);
+  }, 0);
+  const accuracy = Math.round((correctCount / totalCount) * 100);
+
+  const resultText = document.createElement("div");
+  resultText.className = "quiz-result";
+  resultText.textContent = `全 ${totalCount} 問中 ${correctCount} 問正解、正答率 ${accuracy}%`; 
+  summaryBox.appendChild(resultText);
+
+  const wrongIndices = quizState.questions
+    .map((q, index) => ({
+      originalIndex: q.originalIndex,
+      index,
+      isCorrect: quizState.answers[index] === q.answer_index,
+    }))
+    .filter(item => !item.isCorrect);
+
+  if (wrongIndices.length > 0 && !quizState.isRetry) {
+    const retryButton = document.createElement("button");
+    retryButton.type = "button";
+    retryButton.textContent = `間違えた ${wrongIndices.length} 問をもう一度解く`;
+    retryButton.addEventListener("click", () => {
+      const retryQuestions = wrongIndices.map(item => quizState.questions[item.index]);
+      renderQuiz({
+        title: quizState.quizTitle,
+        level: quizState.quizLevel,
+        questions: retryQuestions,
+      }, { isRetry: true, questions: retryQuestions });
+    });
+    summaryBox.appendChild(retryButton);
+  } else if (wrongIndices.length === 0) {
+    const perfect = document.createElement("div");
+    perfect.className = "perfect-score";
+    perfect.textContent = "全問正解です！おめでとうございます。";
+    summaryBox.appendChild(perfect);
+  }
 }

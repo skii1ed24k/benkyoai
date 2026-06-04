@@ -1,6 +1,4 @@
 from flask import Flask, render_template, request, jsonify
-from PIL import Image
-import pytesseract
 import os
 
 app = Flask(__name__)
@@ -103,24 +101,20 @@ def index():
 
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
+    payload = request.get_json(silent=True)
+    if payload and payload.get("text"):
+        text = payload.get("text", "").strip()
+        if not text:
+            return jsonify({"error": "テキストがありません。"}), 400
+        ai_result = generate_questions_from_text(text)
+        return jsonify({"text": text, "ai_result": ai_result})
+
     images = request.files.getlist("image")
     if not images:
-        return jsonify({"error": "画像ファイルがありません。"}), 400
+        return jsonify({"error": "テキストまたは画像ファイルが必要です。"}), 400
 
-    extracted_texts = []
     try:
-        for idx, image_file in enumerate(images, start=1):
-            image = Image.open(image_file.stream).convert("RGB")
-            text = extract_text_from_image(image)
-            if text:
-                extracted_texts.append(f"--- 画像 {idx} ---\n{text}")
-
-        if not extracted_texts:
-            return jsonify({"error": "画像からテキストを抽出できませんでした。"}), 400
-
-        combined_text = "\n\n".join(extracted_texts)
-        ai_result = generate_questions_from_text(combined_text)
-        return jsonify({"text": combined_text, "ai_result": ai_result})
+        return jsonify({"error": "サーバー側OCRは現在利用できません。ブラウザ側で画像をOCRしてから送信してください。"}), 400
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 

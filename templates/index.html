@@ -16,6 +16,7 @@
       <input type="file" id="imageInput" accept="image/*" multiple />
     </label>
     <div id="fileInfo" class="file-info">選択された画像はありません。</div>
+    <div id="ocrStatus" class="file-info"></div>
     <button id="analyzeBtn" disabled>問題を作成する</button>
 
     <section class="result" id="resultSection" hidden>
@@ -27,9 +28,11 @@
 
     <div class="note">
       <p>OpenAI APIキーを設定すると、より自然な問題と理解レベル評価ができます。</p>
+      <p>OCRはブラウザで実行されます。Vercel上でもサーバー側のtesseract依存を回避できます。</p>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/tesseract.min.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

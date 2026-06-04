@@ -1,5 +1,6 @@
 const imageInput = document.getElementById("imageInput");
 const fileInfo = document.getElementById("fileInfo");
+const ocrStatus = document.getElementById("ocrStatus");
 const analyzeBtn = document.getElementById("analyzeBtn");
 const resultSection = document.getElementById("resultSection");
 const extractedText = document.getElementById("extractedText");
@@ -15,7 +16,34 @@ imageInput.addEventListener("change", (event) => {
   } else {
     fileInfo.textContent = `${selectedFiles.length} 枚の画像が選択されました。`;
   }
+  ocrStatus.textContent = "";
 });
+
+async function recognizeTextFromFiles(files) {
+  const worker = Tesseract.createWorker({
+    logger: (m) => {
+      if (m.status === "recognizing text") {
+        ocrStatus.textContent = `OCR中: ${Math.round(m.progress * 100)}%`;
+      } else {
+        ocrStatus.textContent = m.status;
+      }
+    },
+  });
+
+  await worker.load();
+  await worker.loadLanguage("jpn+eng");
+  await worker.initialize("jpn+eng");
+
+  const chunks = [];
+  for (let i = 0; i < files.length; i += 1) {
+    const file = files[i];
+    const { data } = await worker.recognize(file);
+    chunks.push(`--- 画像 ${i + 1} ---\n${data.text.trim()}`);
+  }
+
+  await worker.terminate();
+  return chunks.join("\n\n");
+}
 
 analyzeBtn.addEventListener("click", async () => {
   if (selectedFiles.length === 0) return;
@@ -25,30 +53,31 @@ analyzeBtn.addEventListener("click", async () => {
   resultSection.hidden = true;
   extractedText.textContent = "";
   aiResult.textContent = "";
-
-  const formData = new FormData();
-  selectedFiles.forEach((file) => formData.append("image", file));
+  ocrStatus.textContent = "OCRを開始しています...";
 
   try {
+    const extracted = await recognizeTextFromFiles(selectedFiles);
+    extractedText.textContent = extracted;
+    resultSection.hidden = false;
+
     const response = await fetch("/api/analyze", {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: extracted }),
     });
 
     const data = await response.json();
     if (response.ok) {
-      resultSection.hidden = false;
-      extractedText.textContent = data.text;
       aiResult.textContent = data.ai_result;
     } else {
       aiResult.textContent = `エラー: ${data.error}`;
-      resultSection.hidden = false;
     }
   } catch (error) {
-    aiResult.textContent = `通信エラー: ${error.message}`;
+    aiResult.textContent = `エラー: ${error.message}`;
     resultSection.hidden = false;
   } finally {
     analyzeBtn.disabled = false;
     analyzeBtn.textContent = "問題を作成する";
+    ocrStatus.textContent = "";
   }
 });

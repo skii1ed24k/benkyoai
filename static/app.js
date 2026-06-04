@@ -275,10 +275,65 @@ function showSummary() {
   const correct = quizState.questions.reduce((acc, q, idx) => acc + (quizState.answers[idx] === q.answer_index ? 1 : 0), 0);
   const accuracy = Math.round((correct / total) * 100);
 
-  const res = document.createElement('div');
-  res.className = 'quiz-result';
-  res.textContent = `全 ${total} 問中 ${correct} 問正解、正答率 ${accuracy}%`;
-  quizContainer.appendChild(res);
+  const summaryWrap = document.createElement('div');
+  summaryWrap.className = 'summary-wrap';
+
+  // Donut chart
+  const donut = document.createElement('div');
+  donut.className = 'donut-container';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const size = 140;
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  svg.classList.add('donut-svg');
+
+  const g = document.createElementNS(svgNS, 'g');
+  g.setAttribute('transform', `translate(${size/2}, ${size/2})`);
+
+  const bgCircle = document.createElementNS(svgNS, 'circle');
+  bgCircle.setAttribute('r', r.toString());
+  bgCircle.setAttribute('cx', '0');
+  bgCircle.setAttribute('cy', '0');
+  bgCircle.setAttribute('fill', 'none');
+  bgCircle.setAttribute('stroke', 'rgba(15,23,42,0.06)');
+  bgCircle.setAttribute('stroke-width', stroke.toString());
+
+  const prog = document.createElementNS(svgNS, 'circle');
+  prog.setAttribute('r', r.toString());
+  prog.setAttribute('cx', '0');
+  prog.setAttribute('cy', '0');
+  prog.setAttribute('fill', 'none');
+  prog.setAttribute('stroke', '#3346f0');
+  prog.setAttribute('stroke-width', stroke.toString());
+  prog.setAttribute('stroke-linecap', 'round');
+  prog.setAttribute('transform', 'rotate(-90)');
+  prog.setAttribute('stroke-dasharray', `${c} ${c}`);
+  const offset = Math.round(c * (1 - accuracy / 100));
+  prog.setAttribute('stroke-dashoffset', offset.toString());
+
+  g.appendChild(bgCircle);
+  g.appendChild(prog);
+  svg.appendChild(g);
+
+  const center = document.createElement('div');
+  center.className = 'donut-center';
+  center.innerHTML = `<div class="donut-percent">${accuracy}%</div><div class="donut-label">正答率</div>`;
+
+  donut.appendChild(svg);
+  donut.appendChild(center);
+  summaryWrap.appendChild(donut);
+
+  const textSummary = document.createElement('div');
+  textSummary.className = 'summary-text';
+  textSummary.innerText = `全 ${total} 問中 ${correct} 問正解`;
+  summaryWrap.appendChild(textSummary);
+
+  quizContainer.appendChild(summaryWrap);
 
   const wrong = quizState.questions
     .map((q, idx) => ({ q, idx }))

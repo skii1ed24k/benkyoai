@@ -8,31 +8,63 @@
 </head>
 <body>
   <div class="container">
-    <h1>勉強AIアシスタント</h1>
-    <p>複数の教科書画像をアップロードすると、AIがまとめて問題を作成し、理解レベルを評価します。</p>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">AI学習支援</p>
+        <h1>AIクイズ作成 & 学習レビュー</h1>
+        <p class="lead">画像のテキストから自動で4択問題を生成し、回答結果と解説をその場で確認できます。</p>
+      </div>
+      <div class="hero-meta">
+        <div class="meta-card">
+          <strong>即座に理解度チェック</strong>
+          <span>問題形式で内容を定着化</span>
+        </div>
+        <div class="meta-card">
+          <strong>再挑戦機能</strong>
+          <span>間違えた問題だけを再度出題</span>
+        </div>
+      </div>
+    </header>
 
-    <label class="file-label">
-      画像を選択（複数可）
-      <input type="file" id="imageInput" accept="image/*" multiple />
-    </label>
-    <div id="fileInfo" class="file-info">選択された画像はありません。</div>
-    <div id="ocrStatus" class="file-info"></div>
-    <button id="analyzeBtn" disabled>問題を作成する</button>
+    <section class="upload-section">
+      <label class="file-label">
+        画像を選択（複数可）
+        <input type="file" id="imageInput" accept="image/*" multiple />
+      </label>
+      <div class="status-row">
+        <span id="fileInfo" class="status-badge">選択された画像はありません。</span>
+        <span id="ocrStatus" class="status-badge"></span>
+      </div>
+      <button id="analyzeBtn" disabled>問題を作成する</button>
+    </section>
 
     <section class="result" id="resultSection" hidden>
-      <h2>認識結果</h2>
-      <pre id="extractedText"></pre>
-      <h2>AIの出力</h2>
-      <div id="aiResultContainer">
-        <pre id="aiResult"></pre>
-        <div id="quizContainer"></div>
+      <div class="result-header">
+        <div>
+          <p class="eyebrow">解析結果</p>
+          <h2>抽出テキストと生成クイズ</h2>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <h3>抽出テキスト</h3>
+          <pre id="extractedText"></pre>
+        </div>
+        <div class="card full-card">
+          <h3>クイズ</h3>
+          <div id="aiResultContainer">
+            <pre id="aiResult"></pre>
+            <div id="quizContainer"></div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <div class="note">
-      <p>OpenAI APIキーを設定すると、より自然な問題と理解レベル評価ができます。</p>
-      <p>OCRはブラウザで実行されます。Vercel上でもサーバー側のtesseract依存を回避できます。</p>
-    </div>
+    <section class="note">
+      <p>Google Generative Language API を利用して、テキストから学習問題を生成します。</p>
+      <p>OCRはブラウザ内で実行されるため、サーバーに画像を送信せずに高速に動作します。</p>
+    </section>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/tesseract.min.js"></script>

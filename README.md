@@ -32,13 +32,22 @@ python app.py
 
 ### Google Generative API の動作確認（任意）
 
-ローカルで `GOOGLE_API_KEY` が有効か簡単に試すには次の curl コマンドを実行します（モデルは `text-bison-001` を例示）。
+ローカルで `GOOGLE_API_KEY` が有効か簡単に試すには次の curl コマンドを実行します（モデルは `gemini-3.1-flash-lite` を例示）。
 
 ```bash
-curl -s -X POST \
-	"https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText?key=$GOOGLE_API_KEY" \
-	-H "Content-Type: application/json" \
-	-d '{"prompt":{"text":"簡単なテストをしてください。"},"maxOutputTokens":64}' | jq .
+curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent" \
+  -H 'Content-Type: application/json' \
+  -H "X-goog-api-key: $GOOGLE_API_KEY" \
+  -X POST \
+  -d '{"contents":[{"parts":[{"text":"簡単なテストをしてください。"}]}],"maxOutputTokens":64}' | jq .
 ```
 
-返り値に `candidates` 配列があり生成テキストが含まれていればキーは有効です。
+返り値に JSON が返ってきて生成テキストを含めばキーは有効です。
+
+#### 404 が返る場合
+
+`Requested entity was not found.` が返るときは、次を確認してください。
+- `GOOGLE_API_KEY` が該当プロジェクトのキーであること
+- `Generative Language API` がそのプロジェクトで有効化されていること
+- API キーにリファラー/IP 制限がないこと
+- API キーがアクセスできるモデル一覧に `gemini-3.1-flash-lite` が含まれていること

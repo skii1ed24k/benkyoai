@@ -68,3 +68,45 @@ pre {
   background: #fbfbff;
   border-left: 4px solid #4f70ff;
 }
+
+.quiz-section,
+.advice-section {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8f9fb;
+  border-radius: 12px;
+  border: 1px solid #e8ecf5;
+}
+
+.advice-content {
+  margin: 16px 0;
+}
+
+.advice-section > .advice-section {
+  margin: 16px 0;
+  padding: 12px;
+  background: #ffffff;
+  border-left: 4px solid #4f70ff;
+  border-radius: 4px;
+}
+
+.advice-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: #2f54eb;
+}
+
+.advice-section ul {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.advice-section li {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.advice-section p {
+  margin: 0;
+  line-height: 1.6;
+}

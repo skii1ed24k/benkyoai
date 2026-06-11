@@ -38,6 +38,25 @@ def build_ai_prompt(text):
     )
 
 
+def build_advice_prompt(text):
+    # Generate study advice based on the content
+    return (
+        "以下の教科書の内容を分析して、学習アドバイスを厳密なJSONのみで出力してください。\n"
+        "余分な説明や会話文を含めないでください。\n"
+        "出力スキーマ: \n"
+        "{\n"
+        "  \"key_topics\": [\"重要なトピック1\", \"重要なトピック2\", \"重要なトピック3\"],\n"
+        "  \"difficulty_areas\": [\"難易度が高い項目1\", \"難易度が高い項目2\"],\n"
+        "  \"focus_points\": [\"重点的に学ぶべき点1\", \"重点的に学ぶべき点2\", \"重点的に学ぶべき点3\"],\n"
+        "  \"study_recommendations\": \"より深く学習するために何をすべきかの具体的なアドバイス（2-3文）\",\n"
+        "  \"related_concepts\": [\"関連する概念1\", \"関連する概念2\"]\n"
+        "}\n"
+        "上記スキーマに正確に従ってください。\n"
+        "出力は有効なJSONでなければなりません。\n"
+        "内容:\n" + text
+    )
+
+
 def extract_response_text(response):
     if hasattr(response, "output_text") and response.output_text:
         return response.output_text.strip()
@@ -184,6 +203,107 @@ def generate_questions_from_text(text):
     return fallback
 
 
+def generate_advice_from_text(text):
+    # Generate study advice using AI
+    if GOOGLE_API_KEY:
+        prompt = build_advice_prompt(text)
+        try:
+            import requests
+
+            url = f"https://generativelanguage.googleapis.com/v1beta/{GOOGLE_MODEL}:generateContent"
+            headers = {
+                "Content-Type": "application/json",
+                "X-goog-api-key": GOOGLE_API_KEY,
+            }
+            body = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                        ],
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "topP": 0.9,
+                    "maxOutputTokens": 1000,
+                    "responseMimeType": "application/json",
+                },
+            }
+            resp = requests.post(url, headers=headers, json=body, timeout=20)
+            resp.raise_for_status()
+            data = resp.json()
+
+            def _extract_google_text(d):
+                if not isinstance(d, dict):
+                    return str(d)
+                cands = d.get("candidates")
+                if cands and isinstance(cands, list) and len(cands) > 0:
+                    cand = cands[0]
+                    if isinstance(cand, dict):
+                        if isinstance(cand.get("output"), str):
+                            return cand["output"]
+                        if isinstance(cand.get("outputText"), str):
+                            return cand["outputText"]
+                        content = cand.get("content")
+                        if isinstance(content, dict):
+                            parts = content.get("parts")
+                            if isinstance(parts, list):
+                                texts = []
+                                for item in parts:
+                                    if isinstance(item, dict) and isinstance(item.get("text"), str):
+                                        texts.append(item["text"])
+                                    elif isinstance(item, str):
+                                        texts.append(item)
+                                if texts:
+                                    return "\n".join(texts)
+                        if isinstance(content, list):
+                            parts = []
+                            for item in content:
+                                if isinstance(item, dict) and isinstance(item.get("text"), str):
+                                    parts.append(item["text"])
+                                elif isinstance(item, str):
+                                    parts.append(item)
+                            if parts:
+                                return "\n".join(parts)
+                for key in ("output", "outputText", "text"):
+                    if isinstance(d.get(key), str):
+                        return d.get(key)
+                return str(d)
+
+            answer = _extract_google_text(data).strip()
+            try:
+                import json, re
+                json_text = answer
+                if json_text.strip().startswith("{") and not json_text.strip().endswith("}"):
+                    open_braces = json_text.count("{")
+                    close_braces = json_text.count("}")
+                    if open_braces > close_braces:
+                        json_text += "}" * (open_braces - close_braces)
+                    open_brackets = json_text.count("[")
+                    close_brackets = json_text.count("]")
+                    if open_brackets > close_brackets:
+                        json_text += "]" * (open_brackets - close_brackets)
+
+                m = re.search(r"(\{[\s\S]*\})", json_text)
+                json_text = m.group(1) if m else json_text
+                parsed = json.loads(json_text)
+                return parsed
+            except Exception:
+                return answer
+        except Exception as exc:
+            return f"アドバイス生成中にエラーが発生しました: {exc}"
+
+    # Fallback advice if no API key
+    return {
+        "key_topics": ["主要なトピック1", "主要なトピック2", "主要なトピック3"],
+        "difficulty_areas": ["難しい項目"],
+        "focus_points": ["重点的に学ぶべき項目"],
+        "study_recommendations": "テキストを何度も読み返し、重要なキーワードをまとめてください。",
+        "related_concepts": ["関連する概念1", "関連する概念2"]
+    }
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -207,6 +327,20 @@ def analyze():
         return jsonify({"error": "サーバー側OCRは現在利用できません。ブラウザ側で画像をOCRしてから送信してください。"}), 400
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/get-advice", methods=["POST"])
+def get_advice():
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "JSON形式でテキストを送信してください。"}), 400
+
+    text = payload.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "テキストがありません。"}), 400
+
+    advice = generate_advice_from_text(text)
+    return jsonify({"advice": advice})
 
 
 if __name__ == "__main__":

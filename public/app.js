@@ -7,10 +7,17 @@ const quizContainer = document.getElementById("quizContainer");
 const quizButtonGroup = document.getElementById("quizButtonGroup");
 const retryBtn = document.getElementById("retryBtn");
 const loadPhotoBtn = document.getElementById("loadPhotoBtn");
+const adviceSection = document.getElementById("adviceSection");
+const adviceContainer = document.getElementById("adviceContainer");
+const adviceButtonGroup = document.getElementById("adviceButtonGroup");
+const retryQuizBtn = document.getElementById("retryQuizBtn");
+const newPhotoBtn = document.getElementById("newPhotoBtn");
 
 let selectedFile = null;
 let quizData = null;
 let currentQuestionIndex = 0;
+let extractedTextContent = null;
+let userAnswers = [];
 
 imageInput.addEventListener("change", (event) => {
   selectedFile = event.target.files[0];
@@ -63,6 +70,7 @@ analyzeBtn.addEventListener("click", async () => {
       throw new Error("画像からテキストを抽出できませんでした。");
     }
 
+    extractedTextContent = text;
     extractedText.textContent = text;
     analyzeBtn.textContent = "AI解析中...";
 
@@ -171,6 +179,13 @@ function checkAnswer() {
   const selectedIndex = parseInt(selectedInput.value);
   const question = quizData.questions[currentQuestionIndex];
   const isCorrect = selectedIndex === question.answer_index;
+  
+  // Track user answer
+  userAnswers.push({
+    questionIndex: currentQuestionIndex,
+    selected: selectedIndex,
+    correct: isCorrect
+  });
 
   let resultHtml = `<div class="quiz-result ${isCorrect ? "correct" : "incorrect"}">`;
   resultHtml += `<h3>${isCorrect ? "正解！" : "不正解"}</h3>`;
@@ -181,11 +196,16 @@ function checkAnswer() {
   quizContainer.innerHTML = resultHtml;
   quizButtonGroup.hidden = false;
 
-  // Update button text based on whether it's the last question
+  // Check if it's the last question
   if (currentQuestionIndex < quizData.questions.length - 1) {
-    retryBtn.textContent = "再々挑戦";
+    retryBtn.textContent = "次の問題へ";
+    retryBtn.dataset.action = "next";
+    retryBtn.style.display = "inline-block";
+    loadPhotoBtn.style.display = "none";
   } else {
-    retryBtn.textContent = "最後の問題に戻る";
+    retryBtn.textContent = "学習アドバイスを表示";
+    retryBtn.dataset.action = "advice";
+    loadPhotoBtn.style.display = "none";
   }
 }
 
@@ -193,23 +213,145 @@ function retryCurrentQuestion() {
   displayQuestion(currentQuestionIndex);
 }
 
+async function showAdvice() {
+  if (!extractedTextContent) {
+    adviceContainer.innerHTML = "<p>テキストがありません。</p>";
+    adviceSection.hidden = false;
+    return;
+  }
+
+  adviceContainer.innerHTML = "<p>学習アドバイスを生成中...</p>";
+  quizSection.hidden = true;
+  adviceSection.hidden = false;
+
+  try {
+    const response = await fetch("/api/get-advice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: extractedTextContent }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || "アドバイス取得に失敗しました。");
+    }
+
+    let advice = result.advice;
+    if (typeof advice === "string") {
+      try {
+        advice = JSON.parse(advice);
+      } catch (e) {
+        advice = { error: advice };
+      }
+    }
+
+    displayAdvice(advice);
+  } catch (error) {
+    const message = error && error.message ? error.message : String(error);
+    adviceContainer.innerHTML = `<p>エラー: ${escapeHtml(message)}</p>`;
+  }
+}
+
+function displayAdvice(advice) {
+  let html = "<div class='advice-content'>";
+
+  if (advice.error) {
+    html += `<p>${escapeHtml(advice.error)}</p>`;
+  } else {
+    // Key Topics
+    if (advice.key_topics && Array.isArray(advice.key_topics)) {
+      html += "<div class='advice-section'>";
+      html += "<h3>📌 重要なトピック</h3>";
+      html += "<ul>";
+      advice.key_topics.forEach(topic => {
+        html += `<li>${escapeHtml(topic)}</li>`;
+      });
+      html += "</ul></div>";
+    }
+
+    // Difficulty Areas
+    if (advice.difficulty_areas && Array.isArray(advice.difficulty_areas)) {
+      html += "<div class='advice-section'>";
+      html += "<h3>⚠️ 難易度が高い項目</h3>";
+      html += "<ul>";
+      advice.difficulty_areas.forEach(area => {
+        html += `<li>${escapeHtml(area)}</li>`;
+      });
+      html += "</ul></div>";
+    }
+
+    // Focus Points
+    if (advice.focus_points && Array.isArray(advice.focus_points)) {
+      html += "<div class='advice-section'>";
+      html += "<h3>🎯 重点的に学ぶべき点</h3>";
+      html += "<ul>";
+      advice.focus_points.forEach(point => {
+        html += `<li>${escapeHtml(point)}</li>`;
+      });
+      html += "</ul></div>";
+    }
+
+    // Study Recommendations
+    if (advice.study_recommendations) {
+      html += "<div class='advice-section'>";
+      html += "<h3>💡 学習アドバイス</h3>";
+      html += `<p>${escapeHtml(advice.study_recommendations)}</p></div>`;
+    }
+
+    // Related Concepts
+    if (advice.related_concepts && Array.isArray(advice.related_concepts)) {
+      html += "<div class='advice-section'>";
+      html += "<h3>🔗 関連する概念</h3>";
+      html += "<ul>";
+      advice.related_concepts.forEach(concept => {
+        html += `<li>${escapeHtml(concept)}</li>`;
+      });
+      html += "</ul></div>";
+    }
+  }
+
+  html += "</div>";
+  adviceContainer.innerHTML = html;
+}
+
+function nextQuestion() {
+  if (currentQuestionIndex < quizData.questions.length - 1) {
+    currentQuestionIndex++;
+    displayQuestion(currentQuestionIndex);
+  }
+}
+
 function loadAnotherPhoto() {
   // Reset all state
   selectedFile = null;
   quizData = null;
   currentQuestionIndex = 0;
+  extractedTextContent = null;
+  userAnswers = [];
   
   // Reset UI
   resultSection.hidden = true;
   quizSection.hidden = true;
+  adviceSection.hidden = true;
   extractedText.textContent = "";
   quizContainer.innerHTML = "";
+  adviceContainer.innerHTML = "";
   imageInput.value = "";
   analyzeBtn.disabled = true;
 }
 
-retryBtn.addEventListener("click", retryCurrentQuestion);
+retryBtn.addEventListener("click", function() {
+  if (retryBtn.dataset.action === "next") {
+    nextQuestion();
+  } else if (retryBtn.dataset.action === "advice") {
+    showAdvice();
+  } else {
+    retryCurrentQuestion();
+  }
+});
 loadPhotoBtn.addEventListener("click", loadAnotherPhoto);
+retryQuizBtn.addEventListener("click", retryCurrentQuestion);
+newPhotoBtn.addEventListener("click", loadAnotherPhoto);
 
 // Helper function to escape HTML
 function escapeHtml(text) {

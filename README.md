@@ -24,6 +24,12 @@ brew install tesseract
 python app.py
 ```
 
+If Tesseract is installed in a non-standard location, set the `TESSERACT_CMD` environment variable to the full path, for example:
+
+```bash
+export TESSERACT_CMD=/opt/homebrew/bin/tesseract
+```
+
 ### 実行後
 
 - ブラウザで `http://127.0.0.1:5000/` にアクセス

@@ -1,9 +1,20 @@
 import os
 from flask import Flask, request, jsonify
+import io
+import base64
+from PIL import Image
+
+try:
+    import pytesseract
+except ImportError:
+    pytesseract = None
 
 app = Flask(__name__)
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+TESSERACT_CMD = os.environ.get("TESSERACT_CMD")
+if pytesseract and TESSERACT_CMD:
+    pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
 
 try:
     import openai
@@ -60,3 +71,38 @@ def analyze():
         )
 
     return jsonify({"ai_result": ai_result})
+
+
+@app.route("/ocr", methods=["POST"])
+def ocr():
+    if not pytesseract:
+        return jsonify({"error": "pytesseract not installed"}), 500
+
+    # Accept file upload (form-data) or base64 image in JSON {"image": "data:...base64..."}
+    img = None
+    if "file" in request.files:
+        try:
+            img = Image.open(request.files["file"].stream).convert("RGB")
+        except Exception as exc:
+            return jsonify({"error": f"Unable to open uploaded image: {exc}"}), 400
+    else:
+        payload = request.get_json(silent=True) or {}
+        img_b64 = payload.get("image")
+        if img_b64:
+            try:
+                if img_b64.startswith("data:"):
+                    img_b64 = img_b64.split(",", 1)[1]
+                img_bytes = base64.b64decode(img_b64)
+                img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+            except Exception as exc:
+                return jsonify({"error": f"Unable to decode image: {exc}"}), 400
+
+    if img is None:
+        return jsonify({"error": "No image provided. Use form file 'file' or JSON 'image' base64."}), 400
+
+    try:
+        text = pytesseract.image_to_string(img)
+    except Exception as exc:
+        return jsonify({"error": f"Tesseract OCR failed: {exc}"}), 500
+
+    return jsonify({"text": text})

@@ -66,29 +66,42 @@ imageInput.addEventListener("change", (event) => {
 });
 
 async function recognizeTextFromFiles(files) {
-  const worker = Tesseract.createWorker({
-    logger: (m) => {
-      if (m.status === "recognizing text") {
-        ocrStatus.textContent = `OCR中: ${Math.round(m.progress * 100)}%`;
-      } else {
-        ocrStatus.textContent = m.status;
+  let worker = null;
+  try {
+    worker = Tesseract.createWorker({
+      workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/worker.min.js",
+      corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@2.0.0/tesseract-core.wasm.js",
+      langPath: "https://tessdata.projectnaptha.com/4.0.0",
+      logger: (m) => {
+        if (m.status === "recognizing text") {
+          ocrStatus.textContent = `OCR中: ${Math.round(m.progress * 100)}%`;
+        } else {
+          ocrStatus.textContent = m.status;
+        }
+      },
+    });
+
+    await worker.load();
+    await worker.loadLanguage("jpn+eng");
+    await worker.initialize("jpn+eng");
+
+    const chunks = [];
+    for (let i = 0; i < files.length; i += 1) {
+      const file = files[i];
+      const { data } = await worker.recognize(file);
+      chunks.push(`--- 画像 ${i + 1} ---\n${data.text.trim()}`);
+    }
+
+    return chunks.join("\n\n");
+  } finally {
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (terminateError) {
+        // ignore termination errors
       }
-    },
-  });
-
-  await worker.load();
-  await worker.loadLanguage("jpn+eng");
-  await worker.initialize("jpn+eng");
-
-  const chunks = [];
-  for (let i = 0; i < files.length; i += 1) {
-    const file = files[i];
-    const { data } = await worker.recognize(file);
-    chunks.push(`--- 画像 ${i + 1} ---\n${data.text.trim()}`);
+    }
   }
-
-  await worker.terminate();
-  return chunks.join("\n\n");
 }
 
 analyzeBtn.addEventListener("click", async () => {

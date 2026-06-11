@@ -20,9 +20,12 @@ analyzeBtn.addEventListener("click", async () => {
   extractedText.textContent = "";
   aiResult.textContent = "";
 
+  let worker = null;
   try {
-    const imageUrl = URL.createObjectURL(selectedFile);
-    const worker = Tesseract.createWorker({
+    worker = Tesseract.createWorker({
+      workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/worker.min.js",
+      corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@2.0.0/tesseract-core.wasm.js",
+      langPath: "https://tessdata.projectnaptha.com/4.0.0",
       logger: (m) => {
         if (m.status === "recognizing text") {
           analyzeBtn.textContent = `OCR ${Math.round(m.progress * 100)}%`;
@@ -34,8 +37,7 @@ analyzeBtn.addEventListener("click", async () => {
     await worker.loadLanguage("jpn+eng");
     await worker.initialize("jpn+eng");
 
-    const { data } = await worker.recognize(imageUrl);
-    await worker.terminate();
+    const { data } = await worker.recognize(selectedFile);
 
     const text = data.text.trim();
     if (!text) {
@@ -69,6 +71,13 @@ analyzeBtn.addEventListener("click", async () => {
     aiResult.textContent = `エラー: ${message}`;
     resultSection.hidden = false;
   } finally {
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (terminateError) {
+        // ignore termination errors
+      }
+    }
     analyzeBtn.disabled = false;
     analyzeBtn.textContent = "問題を作成する";
   }

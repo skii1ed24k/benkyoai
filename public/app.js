@@ -83,16 +83,22 @@ analyzeBtn.addEventListener("click", async () => {
 
     // Try to parse AI result as JSON for structured quiz data
     let parsedResult = result.ai_result;
+    let rawResult = null;
     if (typeof parsedResult === "string") {
       try {
         parsedResult = JSON.parse(parsedResult);
       } catch (e) {
-        // If not JSON, treat as plain text
-        parsedResult = { error: parsedResult };
+        rawResult = parsedResult;
+        parsedResult = null;
       }
     }
 
-    quizData = parsedResult;
+    if (!parsedResult || typeof parsedResult !== "object") {
+      quizData = { questions: [], rawOutput: rawResult || String(result.ai_result) };
+    } else {
+      quizData = parsedResult;
+    }
+
     currentQuestionIndex = 0;
     resultSection.hidden = false;
     displayQuiz();
@@ -117,9 +123,14 @@ analyzeBtn.addEventListener("click", async () => {
 function displayQuiz() {
   quizSection.hidden = false;
   
-  // Check if quizData is valid
-  if (!quizData || !quizData.questions || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
-    quizContainer.innerHTML = `<p>問題が見つかりません。</p><pre>${JSON.stringify(quizData, null, 2)}</pre>`;
+  if (!quizData || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+    const rawOutput = quizData && quizData.rawOutput ? quizData.rawOutput : "クイズデータが見つかりませんでした。";
+    quizContainer.innerHTML = `
+      <div class="quiz-error">
+        <p>問題を生成できませんでした。AIの応答を表示します：</p>
+        <pre>${escapeHtml(rawOutput)}</pre>
+      </div>
+    `;
     quizButtonGroup.hidden = true;
     return;
   }

@@ -110,3 +110,14 @@ pre {
   margin: 0;
   line-height: 1.6;
 }
+
+.button-group {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.button-group button {
+  margin-bottom: 0;
+}

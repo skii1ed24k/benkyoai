@@ -196,16 +196,23 @@ function checkAnswer() {
   quizContainer.innerHTML = resultHtml;
   quizButtonGroup.hidden = false;
 
+  console.log("Current question index:", currentQuestionIndex);
+  console.log("Total questions:", quizData.questions.length);
+
   // Check if it's the last question
   if (currentQuestionIndex < quizData.questions.length - 1) {
     retryBtn.textContent = "次の問題へ";
     retryBtn.dataset.action = "next";
     retryBtn.style.display = "inline-block";
     loadPhotoBtn.style.display = "none";
+    console.log("Set button to 'next question'");
   } else {
     retryBtn.textContent = "学習アドバイスを表示";
     retryBtn.dataset.action = "advice";
+    retryBtn.style.display = "inline-block";
     loadPhotoBtn.style.display = "none";
+    console.log("Set button to 'show advice'");
+    console.log("retryBtn.dataset.action:", retryBtn.dataset.action);
   }
 }
 
@@ -214,6 +221,9 @@ function retryCurrentQuestion() {
 }
 
 async function showAdvice() {
+  console.log("showAdvice called");
+  console.log("extractedTextContent:", extractedTextContent);
+  
   if (!extractedTextContent) {
     adviceContainer.innerHTML = "<p>テキストがありません。</p>";
     adviceSection.hidden = false;
@@ -225,13 +235,17 @@ async function showAdvice() {
   adviceSection.hidden = false;
 
   try {
+    console.log("Fetching advice...");
     const response = await fetch("/api/get-advice", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: extractedTextContent }),
     });
 
+    console.log("Response status:", response.status);
     const result = await response.json();
+    console.log("Response data:", result);
+    
     if (!response.ok) {
       throw new Error(result.error || "アドバイス取得に失敗しました。");
     }
@@ -248,6 +262,7 @@ async function showAdvice() {
     displayAdvice(advice);
   } catch (error) {
     const message = error && error.message ? error.message : String(error);
+    console.error("Error in showAdvice:", message);
     adviceContainer.innerHTML = `<p>エラー: ${escapeHtml(message)}</p>`;
   }
 }
@@ -341,11 +356,17 @@ function loadAnotherPhoto() {
 }
 
 retryBtn.addEventListener("click", function() {
+  console.log("retryBtn clicked");
+  console.log("retryBtn.dataset.action:", retryBtn.dataset.action);
+  
   if (retryBtn.dataset.action === "next") {
+    console.log("Calling nextQuestion");
     nextQuestion();
   } else if (retryBtn.dataset.action === "advice") {
+    console.log("Calling showAdvice");
     showAdvice();
   } else {
+    console.log("Calling retryCurrentQuestion");
     retryCurrentQuestion();
   }
 });

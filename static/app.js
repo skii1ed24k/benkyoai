@@ -412,7 +412,11 @@ function showSummary() {
     .map((q, idx) => ({ q, idx }))
     .filter(item => quizState.answers[item.idx] !== item.q.answer_index);
 
-  if (wrong.length > 0 && !quizState.isRetry) {
+  // Create button container for retry and load photo buttons
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'summary-button-group';
+  
+  if (wrong.length > 0) {
     const retryBtn = document.createElement('button');
     retryBtn.type = 'button';
     retryBtn.textContent = `間違えた ${wrong.length} 問をもう一度解く`;
@@ -420,11 +424,34 @@ function showSummary() {
       const retryQuestions = wrong.map(item => ({ ...item.q }));
       renderQuiz({ title: quizState.quizTitle, level: quizState.quizLevel, questions: retryQuestions }, { isRetry: true });
     });
-    quizContainer.appendChild(retryBtn);
+    buttonContainer.appendChild(retryBtn);
   } else if (wrong.length === 0) {
     const perfect = document.createElement('div');
     perfect.className = 'perfect-score';
     perfect.textContent = '全問正解です！おめでとうございます。';
     quizContainer.appendChild(perfect);
+  }
+  
+  // Add "load different photo" button
+  const loadPhotoBtn = document.createElement('button');
+  loadPhotoBtn.type = 'button';
+  loadPhotoBtn.textContent = '別の写真を読み込む';
+  loadPhotoBtn.className = 'load-photo-btn';
+  loadPhotoBtn.addEventListener('click', () => {
+    selectedFiles = [];
+    quizState = null;
+    imageInput.value = '';
+    resultSection.hidden = true;
+    extractedText.textContent = '';
+    aiResult.textContent = '';
+    quizContainer.innerHTML = '';
+    fileInfo.textContent = '選択された画像はありません。';
+    analyzeBtn.disabled = true;
+  });
+  buttonContainer.appendChild(loadPhotoBtn);
+  
+  // Append button container if there are buttons
+  if (wrong.length > 0 || buttonContainer.children.length > 0) {
+    quizContainer.appendChild(buttonContainer);
   }
 }

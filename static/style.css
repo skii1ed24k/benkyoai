@@ -395,3 +395,35 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+
+.summary-button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.summary-button-group button {
+  flex: 1;
+  min-width: 200px;
+}
+
+.load-photo-btn {
+  background: #ef4444;
+}
+
+.load-photo-btn:hover:not(:disabled) {
+  background: #dc2626;
+  box-shadow: 0 18px 32px rgba(239, 68, 68, 0.18);
+}
+
+@media (max-width: 640px) {
+  .summary-button-group {
+    flex-direction: column;
+  }
+  
+  .summary-button-group button {
+    width: 100%;
+    min-width: unset;
+  }
+}

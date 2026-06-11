@@ -11,13 +11,11 @@
     <h1>勉強AIアシスタント</h1>
     <p>教科書の写真をアップロードすると、AIが問題を作成し、理解レベルを評価します。</p>
 
-    <div class="button-group">
-      <label class="file-label">
-        画像を選択
-        <input type="file" id="imageInput" accept="image/*" />
-      </label>
-      <button id="analyzeBtn" disabled>問題を作成する</button>
-    </div>
+    <label class="file-label">
+      画像を選択
+      <input type="file" id="imageInput" accept="image/*" />
+    </label>
+    <button id="analyzeBtn" disabled>問題を作成する</button>
 
     <section class="result" id="resultSection" hidden>
       <h2>認識結果</h2>

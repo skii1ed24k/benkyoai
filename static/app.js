@@ -433,23 +433,24 @@ function showSummary() {
     quizContainer.appendChild(perfect);
   }
   
-  // Add "load different photo" button
-  const loadPhotoBtn = document.createElement('button');
-  loadPhotoBtn.type = 'button';
-  loadPhotoBtn.textContent = '別の写真を読み込む';
-  loadPhotoBtn.className = 'load-photo-btn';
-  loadPhotoBtn.addEventListener('click', () => {
+  // Add "finish quiz" button
+  const actionBtn = document.createElement('button');
+  actionBtn.type = 'button';
+  actionBtn.className = 'finish-btn';
+  actionBtn.textContent = '問題を解き終わる';
+  actionBtn.addEventListener('click', () => {
     selectedFiles = [];
     quizState = null;
     imageInput.value = '';
     resultSection.hidden = true;
+    extractedText.textContent = '';
     aiResult.textContent = '';
     aiResult.hidden = true;
     quizContainer.innerHTML = '';
     fileInfo.textContent = '選択された画像はありません。';
     analyzeBtn.disabled = true;
   });
-  buttonContainer.appendChild(loadPhotoBtn);
+  buttonContainer.appendChild(actionBtn);
   
   // Append button container if there are buttons
   if (wrong.length > 0 || buttonContainer.children.length > 0) {

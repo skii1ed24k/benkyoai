@@ -417,6 +417,15 @@ pre {
   box-shadow: 0 18px 32px rgba(239, 68, 68, 0.18);
 }
 
+.finish-btn {
+  background: #8b5cf6;
+}
+
+.finish-btn:hover:not(:disabled) {
+  background: #7c3aed;
+  box-shadow: 0 18px 32px rgba(139, 92, 246, 0.18);
+}
+
 @media (max-width: 640px) {
   .summary-button-group {
     flex-direction: column;

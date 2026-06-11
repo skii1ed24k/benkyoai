@@ -114,19 +114,26 @@ analyzeBtn.addEventListener("click", async () => {
 
     const data = await response.json();
     if (response.ok) {
+      if (typeof data.ai_result === "undefined" || data.ai_result === null) {
+        throw new Error("APIの応答に問題がありました。再度お試しください。");
+      }
+
       // If backend returned structured JSON, render interactive quiz
-      if (data.ai_result && typeof data.ai_result === "object" && data.ai_result.questions) {
+      if (typeof data.ai_result === "object" && data.ai_result.questions) {
         aiResult.textContent = "(クイズを表示しています)";
         renderQuiz(data.ai_result);
       } else {
-        aiResult.textContent = data.ai_result;
+        aiResult.textContent = typeof data.ai_result === "string"
+          ? data.ai_result
+          : JSON.stringify(data.ai_result, null, 2);
         quizContainer.innerHTML = "";
       }
     } else {
-      aiResult.textContent = `エラー: ${data.error}`;
+      aiResult.textContent = `エラー: ${data.error || "不明なエラー"}`;
     }
   } catch (error) {
-    aiResult.textContent = `エラー: ${error.message}`;
+    const message = error && error.message ? error.message : String(error);
+    aiResult.textContent = `エラー: ${message}`;
     resultSection.hidden = false;
   } finally {
     analyzeBtn.disabled = false;

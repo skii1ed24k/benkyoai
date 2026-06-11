@@ -56,10 +56,17 @@ analyzeBtn.addEventListener("click", async () => {
       throw new Error(result.error || "API解析に失敗しました。");
     }
 
-    aiResult.textContent = result.ai_result;
+    if (typeof result.ai_result === "undefined" || result.ai_result === null) {
+      throw new Error("APIの応答に問題がありました。再度お試しください。");
+    }
+
+    aiResult.textContent = typeof result.ai_result === "string"
+      ? result.ai_result
+      : JSON.stringify(result.ai_result, null, 2);
     resultSection.hidden = false;
   } catch (error) {
-    aiResult.textContent = `エラー: ${error.message}`;
+    const message = error && error.message ? error.message : String(error);
+    aiResult.textContent = `エラー: ${message}`;
     resultSection.hidden = false;
   } finally {
     analyzeBtn.disabled = false;

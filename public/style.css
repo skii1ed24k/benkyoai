@@ -20,6 +20,7 @@ h1 {
 
 .file-label {
   display: inline-block;
+  margin-right: 12px;
   margin-bottom: 16px;
   padding: 14px 20px;
   background: #4f70ff;
@@ -47,6 +48,12 @@ button {
 button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .result {

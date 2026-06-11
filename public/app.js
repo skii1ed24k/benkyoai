@@ -39,13 +39,26 @@ analyzeBtn.addEventListener("click", async () => {
       },
     });
 
-    await worker.load();
-    await worker.loadLanguage("jpn");
-    await worker.initialize("jpn");
+    let text = "";
+    // Prefer worker API, but fall back to Tesseract.recognize if worker lacks load()
+    if (worker && typeof worker.load === "function") {
+      await worker.load();
+      await worker.loadLanguage("jpn");
+      await worker.initialize("jpn");
 
-    const { data } = await worker.recognize(selectedFile);
-
-    const text = data.text.trim();
+      const { data } = await worker.recognize(selectedFile);
+      text = data.text.trim();
+    } else {
+      // Fallback: some environments/CDNs expose only the simpler recognize API
+      const { data } = await Tesseract.recognize(selectedFile, "jpn", {
+        logger: (m) => {
+          if (m.status === "recognizing text") {
+            analyzeBtn.textContent = `OCR ${Math.round(m.progress * 100)}%`;
+          }
+        },
+      });
+      text = data.text.trim();
+    }
     if (!text) {
       throw new Error("画像からテキストを抽出できませんでした。");
     }

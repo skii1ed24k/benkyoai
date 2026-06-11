@@ -81,15 +81,32 @@ async function recognizeTextFromFiles(files) {
       },
     });
 
-    await worker.load();
-    await worker.loadLanguage("jpn");
-    await worker.initialize("jpn");
-
     const chunks = [];
-    for (let i = 0; i < files.length; i += 1) {
-      const file = files[i];
-      const { data } = await worker.recognize(file);
-      chunks.push(`--- 画像 ${i + 1} ---\n${data.text.trim()}`);
+    if (worker && typeof worker.load === "function") {
+      await worker.load();
+      await worker.loadLanguage("jpn");
+      await worker.initialize("jpn");
+
+      for (let i = 0; i < files.length; i += 1) {
+        const file = files[i];
+        const { data } = await worker.recognize(file);
+        chunks.push(`--- 画像 ${i + 1} ---\n${data.text.trim()}`);
+      }
+    } else {
+      // Fallback to Tesseract.recognize per-file
+      for (let i = 0; i < files.length; i += 1) {
+        const file = files[i];
+        const { data } = await Tesseract.recognize(file, "jpn", {
+          logger: (m) => {
+            if (m.status === "recognizing text") {
+              ocrStatus.textContent = `OCR中: ${Math.round(m.progress * 100)}%`;
+            } else {
+              ocrStatus.textContent = m.status;
+            }
+          },
+        });
+        chunks.push(`--- 画像 ${i + 1} ---\n${data.text.trim()}`);
+      }
     }
 
     return chunks.join("\n\n");

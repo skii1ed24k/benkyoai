@@ -163,7 +163,7 @@ function displayQuestion(index) {
   html += `</div>`;
   
   quizContainer.innerHTML = html;
-  quizButtonGroup.hidden = true;
+  // Don't hide button group here - it's managed by checkAnswer()
 
   // Add submit handler
   document.getElementById("submitBtn").addEventListener("click", checkAnswer);

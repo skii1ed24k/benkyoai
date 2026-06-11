@@ -3,7 +3,6 @@ const fileInfo = document.getElementById("fileInfo");
 const ocrStatus = document.getElementById("ocrStatus");
 const analyzeBtn = document.getElementById("analyzeBtn");
 const resultSection = document.getElementById("resultSection");
-const extractedText = document.getElementById("extractedText");
 const aiResult = document.getElementById("aiResult");
 const quizContainer = document.getElementById("quizContainer");
 
@@ -127,13 +126,11 @@ analyzeBtn.addEventListener("click", async () => {
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = "分析中...";
   resultSection.hidden = true;
-  extractedText.textContent = "";
   aiResult.textContent = "";
   ocrStatus.textContent = "OCRを開始しています...";
 
   try {
     const extracted = await recognizeTextFromFiles(selectedFiles);
-    extractedText.textContent = extracted;
     resultSection.hidden = false;
 
     const response = await fetch("/api/analyze", {
@@ -442,7 +439,6 @@ function showSummary() {
     quizState = null;
     imageInput.value = '';
     resultSection.hidden = true;
-    extractedText.textContent = '';
     aiResult.textContent = '';
     quizContainer.innerHTML = '';
     fileInfo.textContent = '選択された画像はありません。';

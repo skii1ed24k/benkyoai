@@ -18,6 +18,22 @@ h1 {
   margin-top: 0;
 }
 
+details {
+  margin-top: 12px;
+}
+
+details summary {
+  cursor: pointer;
+  padding: 8px 0;
+  color: #2f54eb;
+  font-weight: 500;
+  user-select: none;
+}
+
+details summary:hover {
+  text-decoration: underline;
+}
+
 .file-label {
   display: inline-block;
   margin-bottom: 16px;
@@ -49,6 +65,39 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button:hover:not(:disabled) {
+  background: #1d3ab8;
+}
+
+.submit-btn {
+  background: #52c41a;
+  width: 100%;
+  margin-top: 20px;
+  padding: 16px 24px;
+  font-size: 1.1rem;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #389e0d;
+}
+
+.retry-btn {
+  background: #ff7a45;
+  margin-right: 12px;
+}
+
+.retry-btn:hover:not(:disabled) {
+  background: #d9591a;
+}
+
+.load-photo-btn {
+  background: #722ed1;
+}
+
+.load-photo-btn:hover:not(:disabled) {
+  background: #531dab;
+}
+
 .result {
   margin-top: 24px;
 }
@@ -67,4 +116,106 @@ pre {
   padding: 16px;
   background: #fbfbff;
   border-left: 4px solid #4f70ff;
+}
+
+.quiz-section {
+  margin-top: 24px;
+}
+
+.quiz-question {
+  padding: 24px;
+  background: #f9f9ff;
+  border-radius: 12px;
+  border: 1px solid #e5e7ff;
+}
+
+.quiz-question h3 {
+  margin-top: 0;
+  color: #2f54eb;
+}
+
+.question-text {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  font-weight: 500;
+}
+
+.choices {
+  margin: 20px 0;
+}
+
+.choice-label {
+  display: block;
+  margin: 12px 0;
+  padding: 16px;
+  background: white;
+  border: 2px solid #e5e7ff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.choice-label:hover {
+  border-color: #2f54eb;
+  background: #f0f5ff;
+}
+
+.choice-label input[type="radio"] {
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.choice-label span {
+  user-select: none;
+}
+
+.quiz-result {
+  padding: 24px;
+  border-radius: 12px;
+  border: 2px solid;
+}
+
+.quiz-result.correct {
+  background: #f6ffed;
+  border-color: #52c41a;
+}
+
+.quiz-result.correct h3 {
+  color: #52c41a;
+  margin-top: 0;
+}
+
+.quiz-result.incorrect {
+  background: #fff1f0;
+  border-color: #ff7875;
+}
+
+.quiz-result.incorrect h3 {
+  color: #ff7875;
+  margin-top: 0;
+}
+
+.result-text {
+  margin: 12px 0;
+  font-size: 1rem;
+}
+
+.explanation {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  line-height: 1.6;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.button-group button {
+  flex: 1;
+  margin-bottom: 0;
 }

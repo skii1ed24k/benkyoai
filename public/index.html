@@ -19,9 +19,18 @@
 
     <section class="result" id="resultSection" hidden>
       <h2>認識結果</h2>
-      <pre id="extractedText"></pre>
-      <h2>AIの出力</h2>
-      <pre id="aiResult"></pre>
+      <details>
+        <summary>抽出されたテキストを表示</summary>
+        <pre id="extractedText"></pre>
+      </details>
+    </section>
+
+    <section class="quiz-section" id="quizSection" hidden>
+      <div id="quizContainer"></div>
+      <div class="button-group" id="quizButtonGroup" hidden>
+        <button id="retryBtn" class="retry-btn">再々挑戦</button>
+        <button id="loadPhotoBtn" class="load-photo-btn">別の写真を読み込む</button>
+      </div>
     </section>
 
     <div class="note">
@@ -29,7 +38,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.4/dist/tesseract.min.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

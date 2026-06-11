@@ -69,8 +69,8 @@ async function recognizeTextFromFiles(files) {
   let worker = null;
   try {
     worker = Tesseract.createWorker({
-      workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/worker.min.js",
-      corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@2.0.0/tesseract-core.wasm.js",
+      workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@4.0.4/dist/worker.min.js",
+      corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@4.0.4/tesseract-core.wasm.js",
       langPath: "https://tessdata.projectnaptha.com/4.0.0",
       logger: (m) => {
         if (m.status === "recognizing text") {
@@ -82,8 +82,8 @@ async function recognizeTextFromFiles(files) {
     });
 
     await worker.load();
-    await worker.loadLanguage("jpn+eng");
-    await worker.initialize("jpn+eng");
+    await worker.loadLanguage("jpn");
+    await worker.initialize("jpn");
 
     const chunks = [];
     for (let i = 0; i < files.length; i += 1) {

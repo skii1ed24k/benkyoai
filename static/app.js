@@ -147,7 +147,6 @@ analyzeBtn.addEventListener("click", async () => {
 
       // If backend returned structured JSON, render interactive quiz
       if (typeof data.ai_result === "object" && data.ai_result.questions) {
-        aiResult.textContent = "(クイズを表示しています)";
         renderQuiz(data.ai_result);
       } else {
         aiResult.textContent = typeof data.ai_result === "string"

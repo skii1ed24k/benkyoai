@@ -179,14 +179,21 @@ function checkAnswer() {
     return;
   }
 
-  const selectedIndex = parseInt(selectedInput.value);
-  const question = quizData.questions[currentQuestionIndex];
-  const isCorrect = selectedIndex === question.answer_index;
+  const selectedIndex = parseInt(selectedInput.value, 10);
+  const question = quizData.questions[currentQuestionIndex] || {};
+  const answerIndex = Number.isInteger(question.answer_index) ? question.answer_index : -1;
+  const isCorrect = answerIndex >= 0 ? selectedIndex === answerIndex : false;
+  const correctChoice = Array.isArray(question.choices) && question.choices[answerIndex]
+    ? question.choices[answerIndex]
+    : question.choices && question.choices[selectedIndex]
+      ? question.choices[selectedIndex]
+      : "(正解情報なし)";
+  const explanation = question.explanation || "解説はありません。";
 
   let resultHtml = `<div class="quiz-result ${isCorrect ? "correct" : "incorrect"}">`;
   resultHtml += `<h3>${isCorrect ? "正解！" : "不正解"}</h3>`;
-  resultHtml += `<p class="result-text"><strong>正解:</strong> ${escapeHtml(question.choices[question.answer_index])}</p>`;
-  resultHtml += `<p class="explanation"><strong>解説:</strong> ${escapeHtml(question.explanation)}</p>`;
+  resultHtml += `<p class="result-text"><strong>正解:</strong> ${escapeHtml(correctChoice)}</p>`;
+  resultHtml += `<p class="explanation"><strong>解説:</strong> ${escapeHtml(explanation)}</p>`;
   resultHtml += `</div>`;
 
   quizContainer.innerHTML = resultHtml;

@@ -127,6 +127,7 @@ analyzeBtn.addEventListener("click", async () => {
   analyzeBtn.textContent = "分析中...";
   resultSection.hidden = true;
   aiResult.textContent = "";
+  aiResult.hidden = true;
   ocrStatus.textContent = "OCRを開始しています...";
 
   try {
@@ -147,18 +148,22 @@ analyzeBtn.addEventListener("click", async () => {
 
       // If backend returned structured JSON, render interactive quiz
       if (typeof data.ai_result === "object" && data.ai_result.questions) {
+        aiResult.hidden = true;
         renderQuiz(data.ai_result);
       } else {
+        aiResult.hidden = false;
         aiResult.textContent = typeof data.ai_result === "string"
           ? data.ai_result
           : JSON.stringify(data.ai_result, null, 2);
         quizContainer.innerHTML = "";
       }
     } else {
+      aiResult.hidden = false;
       aiResult.textContent = `エラー: ${data.error || "不明なエラー"}`;
     }
   } catch (error) {
     const message = error && error.message ? error.message : String(error);
+    aiResult.hidden = false;
     aiResult.textContent = `エラー: ${message}`;
     resultSection.hidden = false;
   } finally {
@@ -439,6 +444,7 @@ function showSummary() {
     imageInput.value = '';
     resultSection.hidden = true;
     aiResult.textContent = '';
+    aiResult.hidden = true;
     quizContainer.innerHTML = '';
     fileInfo.textContent = '選択された画像はありません。';
     analyzeBtn.disabled = true;

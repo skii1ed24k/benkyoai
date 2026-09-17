@@ -53,13 +53,17 @@ const FeedbackSound = {
   }
 };
 
-imageInput.addEventListener("change", (event) => {
+imageInput.addEventListener("change", async (event) => {
   selectedFiles = Array.from(event.target.files);
   analyzeBtn.disabled = selectedFiles.length === 0;
-  if (selectedFiles.length === 0) {
-    fileInfo.textContent = "選択された画像はありません。";
-  } else {
+  if (selectedFiles.length > 0) {
+    const file = selectedFiles[0];
+    const stablePhotoKey = await getStablePhotoKey(file);
+    file._stablePhotoKey = stablePhotoKey;
+    photoFingerprintCache.set(`${file.name || 'photo'}-${file.size || 0}-${file.lastModified || 0}-${file.type || 'unknown'}`, stablePhotoKey);
     fileInfo.textContent = `${selectedFiles.length} 枚の画像が選択されました。`;
+  } else {
+    fileInfo.textContent = "選択された画像はありません。";
   }
   ocrStatus.textContent = "";
 });
@@ -149,7 +153,7 @@ analyzeBtn.addEventListener("click", async () => {
       // If backend returned structured JSON, render interactive quiz
       if (typeof data.ai_result === "object" && data.ai_result.questions) {
         aiResult.hidden = true;
-        const photoKey = buildPhotoFingerprint(selectedFiles[0], extracted);
+        const photoKey = await getStablePhotoKey(selectedFiles[0]);
         if (quizState) {
           quizState.photoKey = photoKey;
         }
@@ -179,6 +183,7 @@ analyzeBtn.addEventListener("click", async () => {
 
 const choiceLabels = ["A", "B", "C", "D"];
 const photoAttemptHistory = new Map();
+const photoFingerprintCache = new Map();
 
 function buildPhotoFingerprint(file, extraText = '') {
   const seed = (file ? `${file.name || 'photo'}-${file.size || 0}-${file.lastModified || 0}-${file.type || 'unknown'}` : '') + (extraText || '');
@@ -189,10 +194,52 @@ function buildPhotoFingerprint(file, extraText = '') {
   return `photo-${hash.toString(16)}`;
 }
 
+function getStablePhotoKey(file) {
+  if (!file) {
+    const fingerprint = quizState && quizState.quizTitle ? quizState.quizTitle : 'manual';
+    return `session-${fingerprint}`;
+  }
+
+  const cacheKey = `${file.name || 'photo'}-${file.size || 0}-${file.lastModified || 0}-${file.type || 'unknown'}`;
+  if (photoFingerprintCache.has(cacheKey)) {
+    return photoFingerprintCache.get(cacheKey);
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const data = reader.result;
+        const buffer = data instanceof ArrayBuffer ? data : await new Response(file).arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        const key = Array.from(new Uint8Array(hashBuffer))
+          .map((byte) => byte.toString(16).padStart(2, '0'))
+          .join('');
+        const finalKey = `photo-${key}`;
+        photoFingerprintCache.set(cacheKey, finalKey);
+        resolve(finalKey);
+      } catch (error) {
+        const fallback = buildPhotoFingerprint(file, file.name || '');
+        photoFingerprintCache.set(cacheKey, fallback);
+        resolve(fallback);
+      }
+    };
+    reader.onerror = () => {
+      const fallback = buildPhotoFingerprint(file, file.name || '');
+      photoFingerprintCache.set(cacheKey, fallback);
+      resolve(fallback);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 function getCurrentPhotoKey() {
   if (selectedFiles && selectedFiles.length > 0) {
     const file = selectedFiles[0];
-    return buildPhotoFingerprint(file, file && file.name ? file.name : '');
+    const stableKey = file && file._stablePhotoKey;
+    if (stableKey) return stableKey;
+    const cacheKey = `${file.name || 'photo'}-${file.size || 0}-${file.lastModified || 0}-${file.type || 'unknown'}`;
+    return photoFingerprintCache.get(cacheKey) || buildPhotoFingerprint(file, file.name || '');
   }
 
   if (quizState && quizState.photoKey) {

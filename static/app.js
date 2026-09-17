@@ -297,6 +297,7 @@ function renderQuiz(quiz, options = {}) {
     answers: Array(questions.length).fill(null),
     currentIndex: 0,
     isRetry: !!options.isRetry,
+    countAttempt: options.countAttempt !== false,
     photoKey,
   };
 
@@ -559,7 +560,7 @@ function showWeaknessAnalysis() {
     const retryQuestions = wrongQuestions.length > 0
       ? wrongQuestions.map(item => ({ ...item.q }))
       : quizState.questions.map(q => ({ ...q }));
-    renderQuiz({ title: quizState.quizTitle, level: quizState.quizLevel, questions: retryQuestions }, { isRetry: true });
+    renderQuiz({ title: quizState.quizTitle, level: quizState.quizLevel, questions: retryQuestions, photoKey: quizState.photoKey }, { isRetry: true, countAttempt: false });
   });
   buttonContainer.appendChild(retryBtn);
 
@@ -678,20 +679,28 @@ function showSummary() {
   }
 
   const wrong = getWrongQuestions();
-  const attemptHistory = savePhotoAttemptSummary({
-    photoKey: currentPhotoKey,
-    total,
-    correct,
-    wrongCount: wrong.length,
-    accuracy,
-    mistakeFocus: analyzeWeakAreas(wrong)[0] || '重点理解',
-    attemptNumber: historyBeforeSave.length + 1,
-  });
+  const shouldCountAttempt = quizState.countAttempt !== false && !quizState.isRetry;
+  let attemptHistory = historyBeforeSave;
+
+  if (shouldCountAttempt) {
+    attemptHistory = savePhotoAttemptSummary({
+      photoKey: currentPhotoKey,
+      total,
+      correct,
+      wrongCount: wrong.length,
+      accuracy,
+      mistakeFocus: analyzeWeakAreas(wrong)[0] || '重点理解',
+      attemptNumber: historyBeforeSave.length + 1,
+    });
+  }
+
   const improvementMessage = getImprovementMessage();
 
   const textMeta = document.createElement('p');
   textMeta.className = 'summary-text';
-  textMeta.textContent = `この写真を ${attemptHistory.length} 回取り組みました。`;
+  textMeta.textContent = shouldCountAttempt
+    ? `この写真を ${attemptHistory.length} 回取り組みました。`
+    : '同じ問題の再挑戦としては回数に含めません。';
   summaryWrap.appendChild(textMeta);
 
   const buttonContainer = document.createElement('div');

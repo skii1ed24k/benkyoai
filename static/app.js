@@ -314,6 +314,143 @@ function selectChoice(selectedIndex) {
   if (quizContainer._enableNext) quizContainer._enableNext();
 }
 
+function getWrongQuestions() {
+  return quizState.questions
+    .map((q, idx) => ({
+      q,
+      idx,
+      selectedAnswerIndex: quizState.answers[idx],
+      selectedAnswer: quizState.answers[idx] != null ? q.choices[quizState.answers[idx]] : null,
+      correctAnswer: q.choices[q.answer_index],
+    }))
+    .filter(item => item.selectedAnswerIndex !== item.q.answer_index);
+}
+
+function analyzeWeakAreas(wrongQuestions) {
+  const stopWords = new Set([
+    'の', 'は', 'が', 'を', 'に', 'と', 'で', 'た', 'て', 'ている', 'する', 'した', 'など', 'より',
+    'ある', 'ない', 'こと', 'これ', 'それ', 'あれ', 'どれ', '問題', '選択肢', '答え', '解説', 'わかる'
+  ]);
+
+  const termCounts = new Map();
+
+  wrongQuestions.forEach(({ q }) => {
+    const source = `${q.question} ${q.explanation || ''}`;
+    const matches = source.match(/[A-Za-z一-龠ぁ-んァ-ン0-9]+/g) || [];
+
+    matches.forEach((word) => {
+      const normalized = word
+        .replace(/[0-9]/g, '')
+        .replace(/[A-Za-z]{1,2}/g, '')
+        .trim();
+
+      if (!normalized || normalized.length < 2 || stopWords.has(normalized.toLowerCase())) {
+        return;
+      }
+
+      termCounts.set(normalized, (termCounts.get(normalized) || 0) + 1);
+    });
+  });
+
+  const topTerms = [...termCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([term]) => term);
+
+  if (topTerms.length > 0) {
+    return topTerms.map((term, index) => `苦手分野 ${index + 1}: ${term}`);
+  }
+
+  return wrongQuestions.map((item, index) => `間違えた問題 ${index + 1}: ${item.q.question.slice(0, 24)}...`);
+}
+
+function showWeaknessAnalysis() {
+  const wrongQuestions = getWrongQuestions();
+  const weakAreas = analyzeWeakAreas(wrongQuestions);
+
+  quizContainer.innerHTML = '';
+
+  const analysisWrap = document.createElement('div');
+  analysisWrap.className = 'analysis-wrap';
+
+  const heading = document.createElement('h3');
+  heading.textContent = '誤答分析';
+  analysisWrap.appendChild(heading);
+
+  const summary = document.createElement('p');
+  summary.className = 'summary-text';
+  summary.textContent = `間違えた問題は ${wrongQuestions.length} 問です。苦手な分野を確認して、次の学習に活かしましょう。`;
+  analysisWrap.appendChild(summary);
+
+  const weakAreaList = document.createElement('ul');
+  weakAreaList.className = 'weak-area-list';
+  weakAreas.forEach((area) => {
+    const item = document.createElement('li');
+    item.textContent = area;
+    weakAreaList.appendChild(item);
+  });
+  analysisWrap.appendChild(weakAreaList);
+
+  if (wrongQuestions.length > 0) {
+    const details = document.createElement('div');
+    details.className = 'mistake-detail';
+
+    wrongQuestions.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'mistake-card';
+
+      const questionTitle = document.createElement('strong');
+      questionTitle.textContent = `問題 ${item.idx + 1}`;
+
+      const questionText = document.createElement('p');
+      questionText.textContent = item.q.question;
+
+      const answerInfo = document.createElement('p');
+      answerInfo.textContent = `正解: ${item.correctAnswer} / あなたの回答: ${item.selectedAnswer || '未回答'}`;
+
+      const explanation = document.createElement('p');
+      explanation.textContent = `解説: ${item.q.explanation || '解説はありません。'}`;
+
+      card.appendChild(questionTitle);
+      card.appendChild(questionText);
+      card.appendChild(answerInfo);
+      card.appendChild(explanation);
+      details.appendChild(card);
+    });
+
+    analysisWrap.appendChild(details);
+  }
+
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'summary-button-group';
+
+  const retryBtn = document.createElement('button');
+  retryBtn.type = 'button';
+  retryBtn.textContent = '間違えた問題をもう一度解く';
+  retryBtn.addEventListener('click', () => {
+    const retryQuestions = wrongQuestions.map(item => ({ ...item.q }));
+    renderQuiz({ title: quizState.quizTitle, level: quizState.quizLevel, questions: retryQuestions }, { isRetry: true });
+  });
+  buttonContainer.appendChild(retryBtn);
+
+  const finishBtn = document.createElement('button');
+  finishBtn.type = 'button';
+  finishBtn.className = 'finish-btn';
+  finishBtn.textContent = '終了';
+  finishBtn.addEventListener('click', () => {
+    quizState = null;
+    imageInput.value = '';
+    resultSection.hidden = true;
+    extractedText.textContent = '';
+    quizContainer.innerHTML = '';
+    analyzeBtn.disabled = true;
+  });
+  buttonContainer.appendChild(finishBtn);
+
+  analysisWrap.appendChild(buttonContainer);
+  quizContainer.appendChild(analysisWrap);
+}
+
 function showSummary() {
   quizContainer.innerHTML = "";
   const total = quizState.questions.length;
@@ -409,48 +546,27 @@ function showSummary() {
     requestAnimationFrame(step);
   }
 
-  const wrong = quizState.questions
-    .map((q, idx) => ({ q, idx }))
-    .filter(item => quizState.answers[item.idx] !== item.q.answer_index);
+  const wrong = getWrongQuestions();
 
   // Create button container for retry and load photo buttons
   const buttonContainer = document.createElement('div');
   buttonContainer.className = 'summary-button-group';
   
   if (wrong.length > 0) {
-    const retryBtn = document.createElement('button');
-    retryBtn.type = 'button';
-    retryBtn.textContent = `間違えた ${wrong.length} 問をもう一度解く`;
-    retryBtn.addEventListener('click', () => {
-      const retryQuestions = wrong.map(item => ({ ...item.q }));
-      renderQuiz({ title: quizState.quizTitle, level: quizState.quizLevel, questions: retryQuestions }, { isRetry: true });
+    const actionBtn = document.createElement('button');
+    actionBtn.type = 'button';
+    actionBtn.className = 'finish-btn';
+    actionBtn.textContent = '考察する';
+    actionBtn.addEventListener('click', () => {
+      showWeaknessAnalysis();
     });
-    buttonContainer.appendChild(retryBtn);
+    buttonContainer.appendChild(actionBtn);
   } else if (wrong.length === 0) {
     const perfect = document.createElement('div');
     perfect.className = 'perfect-score';
     perfect.textContent = '全問正解です！おめでとうございます。';
     quizContainer.appendChild(perfect);
   }
-  
-  // Add "finish quiz" button
-  const actionBtn = document.createElement('button');
-  actionBtn.type = 'button';
-  actionBtn.className = 'finish-btn';
-  actionBtn.textContent = '問題を解き終わる';
-  actionBtn.addEventListener('click', () => {
-    selectedFiles = [];
-    quizState = null;
-    imageInput.value = '';
-    resultSection.hidden = true;
-    extractedText.textContent = '';
-    aiResult.textContent = '';
-    aiResult.hidden = true;
-    quizContainer.innerHTML = '';
-    fileInfo.textContent = '選択された画像はありません。';
-    analyzeBtn.disabled = true;
-  });
-  buttonContainer.appendChild(actionBtn);
   
   // Append button container if there are buttons
   if (wrong.length > 0 || buttonContainer.children.length > 0) {

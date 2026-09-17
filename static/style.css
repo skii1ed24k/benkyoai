@@ -83,9 +83,19 @@ h1 {
 }
 
 .streak-card strong {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-size: clamp(1.4rem, 2vw, 2rem);
   color: #b45309;
+  line-height: 1.2;
+}
+
+.streak-card strong span {
+  display: inline-block;
+  min-width: 1.4em;
+  text-align: center;
 }
 
 .meta-card strong {

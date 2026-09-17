@@ -110,7 +110,8 @@ function renderStreakBadge() {
   if (!streakValue) return;
 
   const progress = readDeviceProgressSummary();
-  streakValue.textContent = `${progress.streak || 0}日`;
+  const streak = progress.streak || 0;
+  streakValue.innerHTML = `🔥 <span>${streak}</span>`;
 }
 
 // Simple WebAudio helper for feedback sounds

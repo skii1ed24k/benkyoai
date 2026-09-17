@@ -70,6 +70,8 @@ h1 {
 .streak-card {
   background: linear-gradient(135deg, #fff7db 0%, #fef3c7 100%);
   border: 1px solid rgba(245, 158, 11, 0.25);
+  width: fit-content;
+  min-width: 120px;
 }
 
 .streak-label {
@@ -83,13 +85,14 @@ h1 {
 }
 
 .streak-card strong {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   font-size: clamp(1.4rem, 2vw, 2rem);
   color: #b45309;
   line-height: 1.2;
+  width: fit-content;
 }
 
 .streak-card strong span {

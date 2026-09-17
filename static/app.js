@@ -149,7 +149,11 @@ analyzeBtn.addEventListener("click", async () => {
       // If backend returned structured JSON, render interactive quiz
       if (typeof data.ai_result === "object" && data.ai_result.questions) {
         aiResult.hidden = true;
-        renderQuiz(data.ai_result);
+        const photoKey = buildPhotoFingerprint(selectedFiles[0], extracted);
+        if (quizState) {
+          quizState.photoKey = photoKey;
+        }
+        renderQuiz({ ...data.ai_result, photoKey });
       } else {
         aiResult.hidden = false;
         aiResult.textContent = typeof data.ai_result === "string"
@@ -174,6 +178,62 @@ analyzeBtn.addEventListener("click", async () => {
 });
 
 const choiceLabels = ["A", "B", "C", "D"];
+const photoAttemptHistory = new Map();
+
+function buildPhotoFingerprint(file, extraText = '') {
+  const seed = (file ? `${file.name || 'photo'}-${file.size || 0}-${file.lastModified || 0}-${file.type || 'unknown'}` : '') + (extraText || '');
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return `photo-${hash.toString(16)}`;
+}
+
+function getCurrentPhotoKey() {
+  if (selectedFiles && selectedFiles.length > 0) {
+    const file = selectedFiles[0];
+    return buildPhotoFingerprint(file, file && file.name ? file.name : '');
+  }
+
+  if (quizState && quizState.photoKey) {
+    return quizState.photoKey;
+  }
+
+  const fingerprint = quizState && quizState.quizTitle ? quizState.quizTitle : 'manual';
+  return `session-${fingerprint}`;
+}
+
+function savePhotoAttemptSummary(summary) {
+  const key = summary.photoKey || getCurrentPhotoKey();
+  const history = photoAttemptHistory.get(key) || [];
+  history.push(summary);
+  photoAttemptHistory.set(key, history);
+  return history;
+}
+
+function getImprovementMessage() {
+  const key = getCurrentPhotoKey();
+  const history = photoAttemptHistory.get(key) || [];
+
+  if (history.length < 2) {
+    return null;
+  }
+
+  const previous = history[history.length - 2];
+  const current = history[history.length - 1];
+  const mismatchReduction = previous.wrongCount - current.wrongCount;
+  const accuracyImprovement = current.accuracy - previous.accuracy;
+
+  if (current.wrongCount === 0 && previous.wrongCount > 0) {
+    return `前回は ${previous.wrongCount} 問間違えていましたが、今回は ${current.correct} / ${current.total} 問で全問正解です。改善したポイントは「${previous.mistakeFocus || '間違えた箇所の理解'}」を克服したことです。`;
+  }
+
+  if (mismatchReduction > 0 || accuracyImprovement > 0) {
+    return `前回より ${mismatchReduction > 0 ? `${mismatchReduction} 問改善` : `${accuracyImprovement}% 改善`} しました。特に ${previous.mistakeFocus || '苦手だった部分'} を克服できたのが大きいです。`;
+  }
+
+  return `前回と同じように取り組みましたが、今回も安定して ${current.correct} / ${current.total} 問の成績でした。`;
+}
 
 function renderQuiz(quiz, options = {}) {
   const questions = options.questions || quiz.questions.map((q, index) => ({
@@ -181,6 +241,7 @@ function renderQuiz(quiz, options = {}) {
     originalIndex: index,
   }));
 
+  const photoKey = quiz.photoKey || getCurrentPhotoKey();
   quizState = {
     quizTitle: quiz.title || "AI生成クイズ",
     quizLevel: quiz.level || "",
@@ -189,6 +250,7 @@ function renderQuiz(quiz, options = {}) {
     answers: Array(questions.length).fill(null),
     currentIndex: 0,
     isRetry: !!options.isRetry,
+    photoKey,
   };
 
   renderQuestion();
@@ -367,6 +429,7 @@ function analyzeWeakAreas(wrongQuestions) {
 function showWeaknessAnalysis() {
   const wrongQuestions = getWrongQuestions();
   const weakAreas = analyzeWeakAreas(wrongQuestions);
+  const improvementMessage = getImprovementMessage();
 
   quizContainer.innerHTML = '';
 
@@ -374,13 +437,31 @@ function showWeaknessAnalysis() {
   analysisWrap.className = 'analysis-wrap';
 
   const heading = document.createElement('h3');
-  heading.textContent = '誤答分析';
+  heading.textContent = wrongQuestions.length === 0 ? '全問正解の分析' : '誤答分析';
   analysisWrap.appendChild(heading);
 
   const summary = document.createElement('p');
   summary.className = 'summary-text';
-  summary.textContent = `間違えた問題は ${wrongQuestions.length} 問です。苦手な分野を確認して、次の学習に活かしましょう。`;
+  if (wrongQuestions.length === 0) {
+    summary.textContent = 'この写真では全問正解でした。完璧な理解ができています。次は安定して再現できるよう、解法の流れを意識して復習しましょう。';
+  } else {
+    summary.textContent = `間違えた問題は ${wrongQuestions.length} 問です。苦手な分野を確認して、次の学習に活かしましょう。`;
+  }
   analysisWrap.appendChild(summary);
+
+  if (improvementMessage) {
+    const improvement = document.createElement('p');
+    improvement.className = 'summary-text';
+    improvement.textContent = improvementMessage;
+    analysisWrap.appendChild(improvement);
+  }
+
+  if (wrongQuestions.length === 0 && (!photoAttemptHistory.get(getCurrentPhotoKey()) || photoAttemptHistory.get(getCurrentPhotoKey()).length < 2)) {
+    const praise = document.createElement('p');
+    praise.className = 'perfect-score';
+    praise.textContent = '1回目で全問正解です。すごいです！この調子で定着を続けましょう。';
+    analysisWrap.appendChild(praise);
+  }
 
   const weakAreaList = document.createElement('ul');
   weakAreaList.className = 'weak-area-list';
@@ -426,9 +507,11 @@ function showWeaknessAnalysis() {
 
   const retryBtn = document.createElement('button');
   retryBtn.type = 'button';
-  retryBtn.textContent = '間違えた問題をもう一度解く';
+  retryBtn.textContent = wrongQuestions.length === 0 ? 'もう一度この問題を解く' : '間違えた問題をもう一度解く';
   retryBtn.addEventListener('click', () => {
-    const retryQuestions = wrongQuestions.map(item => ({ ...item.q }));
+    const retryQuestions = wrongQuestions.length > 0
+      ? wrongQuestions.map(item => ({ ...item.q }))
+      : quizState.questions.map(q => ({ ...q }));
     renderQuiz({ title: quizState.quizTitle, level: quizState.quizLevel, questions: retryQuestions }, { isRetry: true });
   });
   buttonContainer.appendChild(retryBtn);
@@ -441,7 +524,6 @@ function showWeaknessAnalysis() {
     quizState = null;
     imageInput.value = '';
     resultSection.hidden = true;
-    extractedText.textContent = '';
     quizContainer.innerHTML = '';
     analyzeBtn.disabled = true;
   });
@@ -456,6 +538,8 @@ function showSummary() {
   const total = quizState.questions.length;
   const correct = quizState.questions.reduce((acc, q, idx) => acc + (quizState.answers[idx] === q.answer_index ? 1 : 0), 0);
   const accuracy = Math.round((correct / total) * 100);
+  const currentPhotoKey = quizState.photoKey || getCurrentPhotoKey();
+  const historyBeforeSave = photoAttemptHistory.get(currentPhotoKey) || [];
 
   const summaryWrap = document.createElement('div');
   summaryWrap.className = 'summary-wrap';
@@ -547,28 +631,43 @@ function showSummary() {
   }
 
   const wrong = getWrongQuestions();
+  const attemptHistory = savePhotoAttemptSummary({
+    photoKey: currentPhotoKey,
+    total,
+    correct,
+    wrongCount: wrong.length,
+    accuracy,
+    mistakeFocus: analyzeWeakAreas(wrong)[0] || '重点理解',
+    attemptNumber: historyBeforeSave.length + 1,
+  });
+  const improvementMessage = getImprovementMessage();
 
-  // Create button container for retry and load photo buttons
+  const textMeta = document.createElement('p');
+  textMeta.className = 'summary-text';
+  textMeta.textContent = `この写真を ${attemptHistory.length} 回取り組みました。`;
+  summaryWrap.appendChild(textMeta);
+
   const buttonContainer = document.createElement('div');
   buttonContainer.className = 'summary-button-group';
-  
-  if (wrong.length > 0) {
-    const actionBtn = document.createElement('button');
-    actionBtn.type = 'button';
-    actionBtn.className = 'finish-btn';
-    actionBtn.textContent = '考察する';
-    actionBtn.addEventListener('click', () => {
-      showWeaknessAnalysis();
-    });
-    buttonContainer.appendChild(actionBtn);
-  } else if (wrong.length === 0) {
+
+  if (wrong.length === 0) {
     const perfect = document.createElement('div');
     perfect.className = 'perfect-score';
-    perfect.textContent = '全問正解です！おめでとうございます。';
+    perfect.textContent = attemptHistory.length === 1
+      ? '全問正解です！初回で完璧でした。すごいですね。'
+      : `全問正解です！この写真に ${attemptHistory.length} 回取り組んで、${improvementMessage ? '前回から改善されています。' : '安定して正解できています。'}`;
     quizContainer.appendChild(perfect);
   }
-  
-  // Append button container if there are buttons
+
+  const actionBtn = document.createElement('button');
+  actionBtn.type = 'button';
+  actionBtn.className = 'finish-btn';
+  actionBtn.textContent = '考察する';
+  actionBtn.addEventListener('click', () => {
+    showWeaknessAnalysis();
+  });
+  buttonContainer.appendChild(actionBtn);
+
   if (wrong.length > 0 || buttonContainer.children.length > 0) {
     quizContainer.appendChild(buttonContainer);
   }

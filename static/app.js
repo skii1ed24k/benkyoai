@@ -8,6 +8,110 @@ const quizContainer = document.getElementById("quizContainer");
 
 let selectedFiles = [];
 let quizState = null;
+const DEVICE_STORAGE_KEY = 'benkyoai-progress';
+
+function getStoredProgress() {
+  try {
+    const raw = localStorage.getItem(DEVICE_STORAGE_KEY);
+    if (!raw) {
+      return {
+        photos: {},
+        loginDates: [],
+        streak: 0,
+      };
+    }
+    const parsed = JSON.parse(raw);
+    return {
+      photos: parsed.photos || {},
+      loginDates: Array.isArray(parsed.loginDates) ? parsed.loginDates : [],
+      streak: Number(parsed.streak) || 0,
+    };
+  } catch (error) {
+    return {
+      photos: {},
+      loginDates: [],
+      streak: 0,
+    };
+  }
+}
+
+function saveStoredProgress(progress) {
+  try {
+    localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(progress));
+  } catch (error) {
+    // ignore storage errors (private browsing / quota exceeded)
+  }
+}
+
+function recordLoginDay() {
+  const progress = getStoredProgress();
+  const today = new Date().toISOString().slice(0, 10);
+  const dates = new Set(progress.loginDates || []);
+  dates.add(today);
+  const sortedDates = [...dates].sort();
+  let streak = 0;
+  let cursor = new Date();
+  while (true) {
+    const key = cursor.toISOString().slice(0, 10);
+    if (!sortedDates.includes(key)) break;
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  progress.loginDates = sortedDates;
+  progress.streak = streak;
+  saveStoredProgress(progress);
+  return progress;
+}
+
+function recordPhotoUsage(photoKey, quizTitle, wrongQuestions = []) {
+  const progress = getStoredProgress();
+  if (!progress.photos) progress.photos = {};
+  const dateKey = new Date().toISOString().slice(0, 10);
+  const current = progress.photos[photoKey] || {
+    count: 0,
+    title: quizTitle || 'AI問題',
+    wrongQuestions: [],
+    firstUsedDate: dateKey,
+    lastUsedDate: dateKey,
+  };
+
+  current.count = (current.count || 0) + 1;
+  current.title = quizTitle || current.title || 'AI問題';
+  current.lastUsedDate = dateKey;
+  current.firstUsedDate = current.firstUsedDate || dateKey;
+  current.wrongQuestions = Array.isArray(current.wrongQuestions) ? current.wrongQuestions : [];
+  if (Array.isArray(wrongQuestions) && wrongQuestions.length > 0) {
+    wrongQuestions.forEach((item) => {
+      current.wrongQuestions.push({
+        questionIndex: item.idx,
+        question: item.q.question,
+        selectedAnswer: item.selectedAnswer,
+        correctAnswer: item.correctAnswer,
+        date: dateKey,
+      });
+    });
+  }
+  progress.photos[photoKey] = current;
+  saveStoredProgress(progress);
+  return progress;
+}
+
+function readDeviceProgressSummary() {
+  const progress = getStoredProgress();
+  return {
+    streak: progress.streak || 0,
+    photos: progress.photos || {},
+    loginDates: progress.loginDates || [],
+  };
+}
+
+function renderStreakBadge() {
+  const streakValue = document.getElementById('streakValue');
+  if (!streakValue) return;
+
+  const progress = readDeviceProgressSummary();
+  streakValue.textContent = `${progress.streak || 0}日`;
+}
 
 // Simple WebAudio helper for feedback sounds
 const FeedbackSound = {
@@ -127,6 +231,7 @@ async function recognizeTextFromFiles(files) {
 analyzeBtn.addEventListener("click", async () => {
   if (selectedFiles.length === 0) return;
 
+  recordLoginDay();
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = "分析中...";
   resultSection.hidden = true;
@@ -135,6 +240,8 @@ analyzeBtn.addEventListener("click", async () => {
   ocrStatus.textContent = "OCRを開始しています...";
 
   try {
+    recordLoginDay();
+    renderStreakBadge();
     const extracted = await recognizeTextFromFiles(selectedFiles);
     resultSection.hidden = false;
 
@@ -184,6 +291,9 @@ analyzeBtn.addEventListener("click", async () => {
 const choiceLabels = ["A", "B", "C", "D"];
 const photoAttemptHistory = new Map();
 const photoFingerprintCache = new Map();
+
+recordLoginDay();
+renderStreakBadge();
 
 function buildPhotoFingerprint(file, extraText = '') {
   const seed = (file ? `${file.name || 'photo'}-${file.size || 0}-${file.lastModified || 0}-${file.type || 'unknown'}` : '') + (extraText || '');
@@ -692,6 +802,7 @@ function showSummary() {
       mistakeFocus: analyzeWeakAreas(wrong)[0] || '重点理解',
       attemptNumber: historyBeforeSave.length + 1,
     });
+    recordPhotoUsage(currentPhotoKey, quizState.quizTitle || 'AI問題', wrong);
   }
 
   const improvementMessage = getImprovementMessage();

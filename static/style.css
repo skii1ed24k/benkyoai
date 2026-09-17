@@ -55,7 +55,7 @@ h1 {
 
 .hero-meta {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -65,6 +65,27 @@ h1 {
   background: #f8fbff;
   border: 1px solid rgba(79, 112, 255, 0.14);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.streak-card {
+  background: linear-gradient(135deg, #fff7db 0%, #fef3c7 100%);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.streak-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  color: #92400e;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.streak-card strong {
+  display: block;
+  font-size: clamp(1.4rem, 2vw, 2rem);
+  color: #b45309;
 }
 
 .meta-card strong {

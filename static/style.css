@@ -530,6 +530,54 @@ pre {
   color: #dc2626;
 }
 
+.feedback-mascot {
+  display: flex;
+  justify-content: center;
+  min-height: 238px;
+  margin: 6px 0 -2px;
+  overflow: hidden;
+}
+
+.feedback-mascot .mascot {
+  flex: 0 0 142px;
+  transform-origin: center bottom;
+}
+
+.feedback-mascot .mascot-name,
+.feedback-mascot .mascot-spark {
+  display: none;
+}
+
+.mascot-celebrate {
+  animation: mascot-celebrate 900ms cubic-bezier(.2,.9,.3,1) both;
+}
+
+.mascot-encourage {
+  animation: mascot-encourage 900ms ease both;
+}
+
+.mascot-encourage .mascot-eye span {
+  top: 16px;
+  transform: rotate(10deg);
+}
+
+.mascot-encourage .mascot-head {
+  background: #3b996f;
+}
+
+@keyframes mascot-celebrate {
+  0% { opacity: 0; transform: translateY(26px) scale(0.72) rotate(-8deg); }
+  55% { opacity: 1; transform: translateY(-10px) scale(1.42) rotate(5deg); }
+  75% { transform: translateY(2px) scale(1.3) rotate(-2deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1.34) rotate(0); }
+}
+
+@keyframes mascot-encourage {
+  0% { opacity: 0; transform: translateY(18px) scale(0.75); }
+  65% { opacity: 1; transform: translateY(0) scale(1.34); }
+  100% { opacity: 1; transform: translateY(0) scale(1.27); }
+}
+
 .explanation {
   background: #eef2ff;
   color: #1e293b;

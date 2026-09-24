@@ -515,6 +515,16 @@ function selectChoice(selectedIndex) {
   result.appendChild(textSpan);
   qDiv.appendChild(result);
 
+  const feedbackMascot = document.createElement("div");
+  feedbackMascot.className = `feedback-mascot ${isCorrect ? "feedback-correct" : "feedback-incorrect"}`;
+  const mascot = document.querySelector(".mascot");
+  if (mascot) {
+    const mascotCopy = mascot.cloneNode(true);
+    mascotCopy.classList.add(isCorrect ? "mascot-celebrate" : "mascot-encourage");
+    feedbackMascot.appendChild(mascotCopy);
+  }
+  qDiv.appendChild(feedbackMascot);
+
   const expl = document.createElement("div");
   expl.className = "explanation";
   expl.textContent = `解説: ${q.explanation || "解説はありません。"}`;

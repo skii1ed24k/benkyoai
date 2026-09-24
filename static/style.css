@@ -40,11 +40,45 @@ body {
 
 .mascot-stage {
   position: relative;
-  min-height: 210px;
+  min-height: 250px;
   display: grid;
   justify-items: center;
   align-content: end;
   isolation: isolate;
+}
+
+.mascot-speech {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  left: 50%;
+  width: max-content;
+  max-width: 190px;
+  padding: 10px 14px;
+  border: 2px solid #b8dcca;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #267454;
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 8px 18px rgba(34, 93, 73, 0.1);
+  transform: translateX(-50%);
+  animation: speech-appear 500ms ease both;
+}
+
+.mascot-speech::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 14px;
+  height: 14px;
+  border-right: 2px solid #b8dcca;
+  border-bottom: 2px solid #b8dcca;
+  background: #ffffff;
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .mascot {
@@ -219,6 +253,11 @@ body {
 @keyframes spark-pulse {
   0%, 100% { opacity: 0.45; transform: scale(0.9); }
   50% { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes speech-appear {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .eyebrow {
@@ -669,7 +708,7 @@ pre {
   }
 
   .mascot-stage {
-    min-height: 188px;
+    min-height: 228px;
     transform: scale(0.9);
     transform-origin: top center;
     margin-bottom: -18px;

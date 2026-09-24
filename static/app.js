@@ -107,11 +107,18 @@ function readDeviceProgressSummary() {
 
 function renderStreakBadge() {
   const streakValue = document.getElementById('streakValue');
-  if (!streakValue) return;
-
   const progress = readDeviceProgressSummary();
   const streak = progress.streak || 0;
-  streakValue.innerHTML = `🔥 <span>${streak}</span>`;
+  if (streakValue) {
+    streakValue.innerHTML = `🔥 <span>${streak}</span>`;
+  }
+
+  const mascotSpeech = document.getElementById('mascotSpeech');
+  if (mascotSpeech) {
+    mascotSpeech.textContent = streak >= 2
+      ? `今日は${streak}日連続ログインだね！`
+      : '今日も頑張ろう！';
+  }
 }
 
 // Simple WebAudio helper for feedback sounds

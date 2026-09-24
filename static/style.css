@@ -533,14 +533,16 @@ pre {
 .feedback-mascot {
   display: flex;
   justify-content: center;
-  min-height: 238px;
-  margin: 6px 0 -2px;
+  min-height: 282px;
+  margin: 18px 0 10px;
+  padding-top: 24px;
+  box-sizing: border-box;
   overflow: hidden;
 }
 
 .feedback-mascot .mascot {
   flex: 0 0 142px;
-  transform-origin: center bottom;
+  transform-origin: center top;
 }
 
 .feedback-mascot .mascot-name,

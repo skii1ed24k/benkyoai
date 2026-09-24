@@ -8,6 +8,7 @@ const quizContainer = document.getElementById("quizContainer");
 const historyBtn = document.getElementById("historyBtn");
 const historySection = document.getElementById("historySection");
 const historyContainer = document.getElementById("historyContainer");
+const motivationToggle = document.getElementById("motivationToggle");
 
 let selectedFiles = [];
 let quizState = null;
@@ -48,6 +49,7 @@ function getStoredProgress() {
         loginDates: [],
         streak: 0,
         questionHistory: [],
+        motivationMode: false,
       };
     }
     const parsed = JSON.parse(raw);
@@ -56,6 +58,7 @@ function getStoredProgress() {
       loginDates: Array.isArray(parsed.loginDates) ? parsed.loginDates : [],
       streak: Number(parsed.streak) || 0,
       questionHistory: Array.isArray(parsed.questionHistory) ? parsed.questionHistory : [],
+      motivationMode: parsed.motivationMode === true,
     };
   } catch (error) {
     return {
@@ -63,6 +66,7 @@ function getStoredProgress() {
       loginDates: [],
       streak: 0,
       questionHistory: [],
+      motivationMode: false,
     };
   }
 }
@@ -217,10 +221,25 @@ function renderStreakBadge() {
 
   const mascotSpeech = document.getElementById('mascotSpeech');
   if (mascotSpeech) {
-    mascotSpeech.textContent = streak >= 2
-      ? `今日は${streak}日連続ログインだね！`
-      : '今日も頑張ろう！';
+    const motivationMode = getStoredProgress().motivationMode === true;
+    mascotSpeech.textContent = motivationMode
+      ? (streak >= 2
+        ? `今日は${streak}日連続ログイン！この調子で満点を目指そう！`
+        : 'ミモが応援するよ！まずは一問、始めてみよう！')
+      : (streak >= 2
+        ? `今日は${streak}日連続ログインだね！`
+        : '今日も頑張ろう！');
   }
+}
+
+if (motivationToggle) {
+  motivationToggle.checked = getStoredProgress().motivationMode === true;
+  motivationToggle.addEventListener('change', () => {
+    const progress = getStoredProgress();
+    progress.motivationMode = motivationToggle.checked;
+    saveStoredProgress(progress);
+    renderStreakBadge();
+  });
 }
 
 // Simple WebAudio helper for feedback sounds
@@ -341,7 +360,6 @@ async function recognizeTextFromFiles(files) {
 analyzeBtn.addEventListener("click", async () => {
   if (selectedFiles.length === 0) return;
 
-  recordLoginDay();
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = "分析中...";
   resultSection.hidden = true;
@@ -350,7 +368,6 @@ analyzeBtn.addEventListener("click", async () => {
   ocrStatus.textContent = "OCRを開始しています...";
 
   try {
-    recordLoginDay();
     renderStreakBadge();
     const extracted = await recognizeTextFromFiles(selectedFiles);
     resultSection.hidden = false;
@@ -402,7 +419,6 @@ const choiceLabels = ["A", "B", "C", "D"];
 const photoAttemptHistory = new Map();
 const photoFingerprintCache = new Map();
 
-recordLoginDay();
 renderStreakBadge();
 
 function buildPhotoFingerprint(file, extraText = '') {
@@ -816,6 +832,10 @@ function showSummary() {
   const total = quizState.questions.length;
   const correct = quizState.questions.reduce((acc, q, idx) => acc + (quizState.answers[idx] === q.answer_index ? 1 : 0), 0);
   const accuracy = Math.round((correct / total) * 100);
+  if (total > 0 && correct === total) {
+    recordLoginDay();
+    renderStreakBadge();
+  }
   const currentPhotoKey = quizState.photoKey || getCurrentPhotoKey();
   const historyBeforeSave = photoAttemptHistory.get(currentPhotoKey) || [];
 

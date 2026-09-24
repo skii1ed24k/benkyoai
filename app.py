@@ -14,7 +14,7 @@ def extract_text_from_image(image):
     raise RuntimeError("Server-side OCR is disabled. Use client-side OCR and send text to the API.")
 
 
-def build_ai_prompt(text):
+def build_ai_prompt(text, question_count=3):
     # Ask the model to return a strict JSON-formatted 4-choice quiz (no extra text).
     return (
         "以下の教科書の内容を読み取り、厳密なJSONのみを出力してください。\n"
@@ -32,7 +32,7 @@ def build_ai_prompt(text):
         "    }\n"
         "  ]\n"
         "}\n"
-        "上記スキーマに正確に従って、重要な問題を3問（それぞれ4択）作成してください。\n"
+        f"上記スキーマに正確に従って、重要な問題を{question_count}問（それぞれ4択）作成してください。\n"
         "出力は有効なJSONでなければなりません。\n"
         "内容:\n" + text
     )
@@ -72,10 +72,10 @@ def extract_response_text(response):
     return "".join(output).strip()
 
 
-def generate_questions_from_text(text):
+def generate_questions_from_text(text, question_count=3):
     # Prefer Google Generative API if GOOGLE_API_KEY is provided
     if GOOGLE_API_KEY:
-        prompt = build_ai_prompt(text)
+        prompt = build_ai_prompt(text, question_count)
         try:
             import requests
 
@@ -188,6 +188,11 @@ def generate_questions_from_text(text):
         "2. 重要な用語や公式を1つ挙げて、その意味を説明してください。",
         "3. 学んだ内容を自分の言葉でまとめてください。",
     ]
+    if question_count == 5:
+        questions.extend([
+            "4. 学んだ内容を別の場面で使うとしたら、どのように使えますか？",
+            "5. この内容でまだ疑問に思う点は何ですか？",
+        ])
     level = "基礎"
     if len(text) > 400:
         level = "標準"
@@ -316,7 +321,8 @@ def analyze():
         text = payload.get("text", "").strip()
         if not text:
             return jsonify({"error": "テキストがありません。"}), 400
-        ai_result = generate_questions_from_text(text)
+        question_count = 5 if payload.get("question_count") == 5 else 3
+        ai_result = generate_questions_from_text(text, question_count)
         return jsonify({"text": text, "ai_result": ai_result})
 
     images = request.files.getlist("image")

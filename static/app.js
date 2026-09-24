@@ -215,13 +215,17 @@ function renderStreakBadge() {
   const streakValue = document.getElementById('streakValue');
   const progress = readDeviceProgressSummary();
   const streak = progress.streak || 0;
+  const motivationMode = getStoredProgress().motivationMode === true;
+  const streakCard = document.getElementById('streakCard');
+  if (streakCard) {
+    streakCard.hidden = !motivationMode;
+  }
   if (streakValue) {
     streakValue.innerHTML = `🔥 <span>${streak}</span>`;
   }
 
   const mascotSpeech = document.getElementById('mascotSpeech');
   if (mascotSpeech) {
-    const motivationMode = getStoredProgress().motivationMode === true;
     mascotSpeech.textContent = motivationMode
       ? (streak >= 2
         ? `今日は${streak}日連続ログイン！この調子で満点を目指そう！`
@@ -375,7 +379,10 @@ analyzeBtn.addEventListener("click", async () => {
     const response = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: extracted }),
+      body: JSON.stringify({
+        text: extracted,
+        question_count: getStoredProgress().motivationMode === true ? 3 : 5,
+      }),
     });
 
     const data = await response.json();
@@ -832,7 +839,7 @@ function showSummary() {
   const total = quizState.questions.length;
   const correct = quizState.questions.reduce((acc, q, idx) => acc + (quizState.answers[idx] === q.answer_index ? 1 : 0), 0);
   const accuracy = Math.round((correct / total) * 100);
-  if (total > 0 && correct === total) {
+  if (total > 0 && correct === total && getStoredProgress().motivationMode === true) {
     recordLoginDay();
     renderStreakBadge();
   }

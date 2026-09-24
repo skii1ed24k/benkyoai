@@ -12,10 +12,36 @@ const historyContainer = document.getElementById("historyContainer");
 let selectedFiles = [];
 let quizState = null;
 const DEVICE_STORAGE_KEY = 'benkyoai-progress';
+const DEVICE_COOKIE_KEY = 'benkyoai-progress-fallback';
+
+function getLocalDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function readProgressRaw() {
+  try {
+    const localValue = localStorage.getItem(DEVICE_STORAGE_KEY);
+    if (localValue) return localValue;
+  } catch (error) {
+    // Use the cookie fallback when localStorage is unavailable.
+  }
+
+  try {
+    const cookie = document.cookie
+      .split('; ')
+      .find((item) => item.startsWith(`${DEVICE_COOKIE_KEY}=`));
+    return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 function getStoredProgress() {
   try {
-    const raw = localStorage.getItem(DEVICE_STORAGE_KEY);
+    const raw = readProgressRaw();
     if (!raw) {
       return {
         photos: {},
@@ -42,23 +68,31 @@ function getStoredProgress() {
 }
 
 function saveStoredProgress(progress) {
+  const serialized = JSON.stringify(progress);
   try {
-    localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(progress));
+    localStorage.setItem(DEVICE_STORAGE_KEY, serialized);
+    if (localStorage.getItem(DEVICE_STORAGE_KEY) === serialized) return;
   } catch (error) {
-    // ignore storage errors (private browsing / quota exceeded)
+    // Use the cookie fallback for restricted browser storage.
+  }
+
+  try {
+    document.cookie = `${DEVICE_COOKIE_KEY}=${encodeURIComponent(serialized)}; max-age=31536000; path=/; SameSite=Lax`;
+  } catch (error) {
+    // Ignore storage errors when both browser storage methods are unavailable.
   }
 }
 
 function recordLoginDay() {
   const progress = getStoredProgress();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getLocalDateKey();
   const dates = new Set(progress.loginDates || []);
   dates.add(today);
   const sortedDates = [...dates].sort();
   let streak = 0;
   let cursor = new Date();
   while (true) {
-    const key = cursor.toISOString().slice(0, 10);
+    const key = getLocalDateKey(cursor);
     if (!sortedDates.includes(key)) break;
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
@@ -72,7 +106,7 @@ function recordLoginDay() {
 function recordPhotoUsage(photoKey, quizTitle, wrongQuestions = []) {
   const progress = getStoredProgress();
   if (!progress.photos) progress.photos = {};
-  const dateKey = new Date().toISOString().slice(0, 10);
+  const dateKey = getLocalDateKey();
   const current = progress.photos[photoKey] || {
     count: 0,
     title: quizTitle || 'AI問題',

@@ -62,7 +62,20 @@
         <span id="fileInfo" class="status-badge">選択された画像はありません。</span>
         <span id="ocrStatus" class="status-badge"></span>
       </div>
-      <button id="analyzeBtn" disabled>問題を作成する</button>
+      <div class="upload-actions">
+        <button id="analyzeBtn" disabled>問題を作成する</button>
+        <button id="historyBtn" class="history-btn" aria-expanded="false">問題履歴を見る</button>
+      </div>
+    </section>
+
+    <section class="history-section" id="historySection" hidden>
+      <div class="result-header">
+        <div>
+          <p class="eyebrow">学習ログ</p>
+          <h2>今まで解いた問題</h2>
+        </div>
+      </div>
+      <div id="historyContainer"></div>
     </section>
 
     <section class="result" id="resultSection" hidden>

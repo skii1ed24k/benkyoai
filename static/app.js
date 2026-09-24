@@ -5,6 +5,9 @@ const analyzeBtn = document.getElementById("analyzeBtn");
 const resultSection = document.getElementById("resultSection");
 const aiResult = document.getElementById("aiResult");
 const quizContainer = document.getElementById("quizContainer");
+const historyBtn = document.getElementById("historyBtn");
+const historySection = document.getElementById("historySection");
+const historyContainer = document.getElementById("historyContainer");
 
 let selectedFiles = [];
 let quizState = null;
@@ -18,6 +21,7 @@ function getStoredProgress() {
         photos: {},
         loginDates: [],
         streak: 0,
+        questionHistory: [],
       };
     }
     const parsed = JSON.parse(raw);
@@ -25,12 +29,14 @@ function getStoredProgress() {
       photos: parsed.photos || {},
       loginDates: Array.isArray(parsed.loginDates) ? parsed.loginDates : [],
       streak: Number(parsed.streak) || 0,
+      questionHistory: Array.isArray(parsed.questionHistory) ? parsed.questionHistory : [],
     };
   } catch (error) {
     return {
       photos: {},
       loginDates: [],
       streak: 0,
+      questionHistory: [],
     };
   }
 }
@@ -102,7 +108,69 @@ function readDeviceProgressSummary() {
     streak: progress.streak || 0,
     photos: progress.photos || {},
     loginDates: progress.loginDates || [],
+    questionHistory: progress.questionHistory || [],
   };
+}
+
+function saveQuestionHistory() {
+  if (!quizState || !Array.isArray(quizState.questions)) return;
+
+  const progress = getStoredProgress();
+  const date = new Date().toLocaleDateString('ja-JP');
+  const entries = quizState.questions.map((question, index) => {
+    const selectedIndex = quizState.answers[index];
+    return {
+      date,
+      title: quizState.quizTitle || 'AI問題',
+      question: question.question,
+      selectedAnswer: selectedIndex == null ? '未回答' : question.choices[selectedIndex],
+      correctAnswer: question.choices[question.answer_index],
+      isCorrect: selectedIndex === question.answer_index,
+    };
+  });
+
+  progress.questionHistory = [...(progress.questionHistory || []), ...entries].slice(-100);
+  saveStoredProgress(progress);
+}
+
+function renderQuestionHistory() {
+  if (!historyContainer) return;
+  const history = readDeviceProgressSummary().questionHistory;
+  historyContainer.innerHTML = '';
+
+  if (history.length === 0) {
+    historyContainer.innerHTML = '<p class="history-empty">まだ解いた問題はありません。</p>';
+    return;
+  }
+
+  [...history].reverse().forEach((item) => {
+    const entry = document.createElement('article');
+    entry.className = `history-entry ${item.isCorrect ? 'history-correct' : 'history-incorrect'}`;
+
+    const meta = document.createElement('div');
+    meta.className = 'history-meta';
+    meta.textContent = `${item.date} ・ ${item.title}`;
+
+    const question = document.createElement('h3');
+    question.textContent = item.question;
+
+    const answer = document.createElement('p');
+    answer.className = 'history-answer';
+    answer.textContent = `${item.isCorrect ? '正解' : '不正解'}　あなたの回答: ${item.selectedAnswer}　正解: ${item.correctAnswer}`;
+
+    entry.append(meta, question, answer);
+    historyContainer.appendChild(entry);
+  });
+}
+
+if (historyBtn && historySection) {
+  historyBtn.addEventListener('click', () => {
+    const isHidden = historySection.hidden;
+    if (isHidden) renderQuestionHistory();
+    historySection.hidden = !isHidden;
+    historyBtn.setAttribute('aria-expanded', String(isHidden));
+    if (isHidden) historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 }
 
 function renderStreakBadge() {
@@ -822,6 +890,8 @@ function showSummary() {
     });
     recordPhotoUsage(currentPhotoKey, quizState.quizTitle || 'AI問題', wrong);
   }
+
+  saveQuestionHistory();
 
   const improvementMessage = getImprovementMessage();
 

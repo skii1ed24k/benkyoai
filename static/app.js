@@ -1251,9 +1251,11 @@ function showSummary() {
   if (wrong.length === 0) {
     const perfect = document.createElement('div');
     perfect.className = 'perfect-score';
-    perfect.textContent = attemptHistory.length === 1
-      ? '全問正解です！初回で完璧でした。すごいですね。'
-      : `全問正解です！この写真に ${attemptHistory.length} 回取り組んで、${improvementMessage ? '前回から改善されています。' : '安定して正解できています。'}`;
+    perfect.textContent = quizState.isRetry
+      ? '解き直しで全問正解！すばらしいです。次も間違えないように、今回の解き方をしっかり覚えておこう！'
+      : attemptHistory.length === 1
+        ? '全問正解です！初回で完璧でした。すごいですね。'
+        : `全問正解です！この写真に ${attemptHistory.length} 回取り組んで、${improvementMessage ? '前回から改善されています。' : '安定して正解できています。'}`;
     quizContainer.appendChild(perfect);
   }
 

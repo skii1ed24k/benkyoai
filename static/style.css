@@ -509,6 +509,28 @@ button:disabled {
   margin: 0 0 18px;
 }
 
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.history-filters button {
+  min-height: 42px;
+  padding: 0 16px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.history-filters button[aria-pressed="true"] {
+  background: #3346f0;
+  color: #ffffff;
+  border-color: #3346f0;
+}
+
 .history-entry {
   padding: 16px 18px;
   border-left: 5px solid #94a3b8;

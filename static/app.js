@@ -12,6 +12,7 @@ const motivationToggle = document.getElementById("motivationToggle");
 
 let selectedFiles = [];
 let quizState = null;
+let historyFilter = 'all';
 const DEVICE_STORAGE_KEY = 'benkyoai-progress';
 const DEVICE_COOKIE_KEY = 'benkyoai-progress-fallback';
 
@@ -177,11 +178,19 @@ function saveQuestionHistory() {
 
 function renderQuestionHistory() {
   if (!historyContainer) return;
-  const history = readDeviceProgressSummary().questionHistory;
+  const history = readDeviceProgressSummary().questionHistory
+    .filter((item) => historyFilter === 'all' || item.isCorrect === (historyFilter === 'correct'));
   historyContainer.innerHTML = '';
 
   if (history.length === 0) {
-    historyContainer.innerHTML = '<p class="history-empty">まだ解いた問題はありません。</p>';
+    const emptyMessage = document.createElement('p');
+    emptyMessage.className = 'history-empty';
+    emptyMessage.textContent = historyFilter === 'all'
+      ? 'まだ解いた問題はありません。'
+      : historyFilter === 'correct'
+        ? '正解した問題はありません。'
+        : '間違えた問題はありません。';
+    historyContainer.appendChild(emptyMessage);
     return;
   }
 
@@ -214,6 +223,16 @@ if (historyBtn && historySection) {
     if (isHidden) historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
+
+document.querySelectorAll('[data-history-filter]').forEach((button) => {
+  button.addEventListener('click', () => {
+    historyFilter = button.dataset.historyFilter;
+    document.querySelectorAll('[data-history-filter]').forEach((filterButton) => {
+      filterButton.setAttribute('aria-pressed', String(filterButton === button));
+    });
+    renderQuestionHistory();
+  });
+});
 
 function renderStreakBadge() {
   const streakValue = document.getElementById('streakValue');

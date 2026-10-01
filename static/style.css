@@ -7,6 +7,10 @@ body {
   color: #1f2937;
 }
 
+body.history-selection-active {
+  padding-bottom: 112px;
+}
+
 :root {
   --correct-color: #10B981; /* match correct feedback color */
 }
@@ -523,6 +527,49 @@ button:disabled {
   color: #475569;
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.history-selection-actions {
+  position: fixed;
+  z-index: 20;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 12px;
+  width: min(calc(100vw - 32px), 880px);
+  padding: 12px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+.history-selection-actions[hidden] {
+  display: none;
+}
+
+.history-selection-actions button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 54px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  line-height: 1.35;
+}
+
+.history-selection-actions .delete-history-btn {
+  background: #b42318;
+}
+
+.history-selection-actions .delete-history-btn:hover:not(:disabled) {
+  background: #912018;
+  box-shadow: 0 10px 22px rgba(180, 35, 24, 0.2);
+}
+
+.history-selection-actions .replay-history-btn {
+  background: #3346f0;
 }
 
 .history-filters {

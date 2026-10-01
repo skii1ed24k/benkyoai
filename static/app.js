@@ -10,6 +10,9 @@ const historySection = document.getElementById("historySection");
 const historyContainer = document.getElementById("historyContainer");
 const historySelectBtn = document.getElementById("historySelectBtn");
 const historySelectionCount = document.getElementById("historySelectionCount");
+const historySelectionActions = document.getElementById("historySelectionActions");
+const deleteSelectedHistoryBtn = document.getElementById("deleteSelectedHistoryBtn");
+const replaySelectedHistoryBtn = document.getElementById("replaySelectedHistoryBtn");
 const motivationToggle = document.getElementById("motivationToggle");
 
 let selectedFiles = [];
@@ -263,14 +266,37 @@ function renderQuestionHistory() {
 }
 
 function updateHistorySelectionControls() {
+  const selectedItems = getSelectedHistoryItems();
+  const canReplay = selectedItems.length > 0 && selectedItems.every(({ item }) => (
+    Array.isArray(item.choices) && Number.isInteger(item.answerIndex)
+  ));
+
   if (historySelectBtn) {
     historySelectBtn.textContent = historySelectionMode ? 'キャンセル' : '選択';
     historySelectBtn.setAttribute('aria-pressed', String(historySelectionMode));
   }
   if (historySelectionCount) {
     historySelectionCount.hidden = !historySelectionMode;
-    historySelectionCount.textContent = `${selectedHistoryEntries.size}件選択中`;
+    historySelectionCount.textContent = `${selectedItems.length}件選択中`;
   }
+  if (historySelectionActions) {
+    historySelectionActions.hidden = !historySelectionMode;
+  }
+  if (deleteSelectedHistoryBtn) {
+    deleteSelectedHistoryBtn.disabled = selectedItems.length === 0;
+  }
+  if (replaySelectedHistoryBtn) {
+    replaySelectedHistoryBtn.disabled = !canReplay;
+  }
+  document.body.classList.toggle('history-selection-active', historySelectionMode);
+}
+
+function getSelectedHistoryItems() {
+  const history = getStoredProgress().questionHistory;
+  return [...selectedHistoryEntries]
+    .sort((a, b) => a - b)
+    .filter((index) => index >= 0 && index < history.length)
+    .map((index) => ({ item: history[index], index }));
 }
 
 if (historySelectBtn) {
@@ -278,6 +304,48 @@ if (historySelectBtn) {
     historySelectionMode = !historySelectionMode;
     if (!historySelectionMode) selectedHistoryEntries.clear();
     renderQuestionHistory();
+  });
+}
+
+if (deleteSelectedHistoryBtn) {
+  deleteSelectedHistoryBtn.addEventListener('click', () => {
+    const selectedItems = getSelectedHistoryItems();
+    if (selectedItems.length === 0) return;
+    if (!window.confirm(`選択した${selectedItems.length}件の問題履歴を削除しますか？`)) return;
+
+    const progress = getStoredProgress();
+    progress.questionHistory = progress.questionHistory.filter((_, index) => !selectedHistoryEntries.has(index));
+    saveStoredProgress(progress);
+    selectedHistoryEntries.clear();
+    renderQuestionHistory();
+  });
+}
+
+if (replaySelectedHistoryBtn) {
+  replaySelectedHistoryBtn.addEventListener('click', () => {
+    const selectedItems = getSelectedHistoryItems();
+    if (selectedItems.length === 0 || selectedItems.some(({ item }) => (
+      !Array.isArray(item.choices) || !Number.isInteger(item.answerIndex)
+    ))) return;
+
+    const questions = selectedItems.map(({ item }) => ({
+      question: item.question,
+      category: item.category,
+      choices: item.choices,
+      answer_index: item.answerIndex,
+      explanation: item.explanation || '',
+    }));
+
+    historySelectionMode = false;
+    selectedHistoryEntries.clear();
+    renderQuestionHistory();
+    resultSection.hidden = false;
+    renderQuiz({ title: '選択した履歴の再挑戦', questions }, {
+      isRetry: true,
+      isHistoryReplay: true,
+      countAttempt: false,
+    });
+    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
 
@@ -301,6 +369,11 @@ if (historyBtn && historySection) {
   historyBtn.addEventListener('click', () => {
     const isHidden = historySection.hidden;
     if (isHidden) renderQuestionHistory();
+    else {
+      historySelectionMode = false;
+      selectedHistoryEntries.clear();
+      updateHistorySelectionControls();
+    }
     historySection.hidden = !isHidden;
     historyBtn.setAttribute('aria-expanded', String(isHidden));
     if (isHidden) historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });

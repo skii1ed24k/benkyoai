@@ -538,6 +538,19 @@ button:disabled {
   background: #f8fafc;
 }
 
+.history-entry-actionable {
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.history-entry-actionable:hover,
+.history-entry-actionable:focus-visible {
+  background: #eef2ff;
+  transform: translateY(-1px);
+  outline: 2px solid rgba(51, 70, 240, 0.35);
+  outline-offset: 2px;
+}
+
 .history-entry + .history-entry {
   margin-top: 10px;
 }
@@ -567,6 +580,13 @@ button:disabled {
   color: #475569;
   font-size: 0.92rem;
   line-height: 1.6;
+}
+
+.history-replay-hint {
+  margin: 8px 0 0;
+  color: #475569;
+  font-size: 0.84rem;
+  font-weight: 600;
 }
 
 .history-empty {

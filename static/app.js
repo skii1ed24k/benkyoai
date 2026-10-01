@@ -166,6 +166,9 @@ function saveQuestionHistory() {
       title: quizState.quizTitle || 'AI問題',
       question: question.question,
       category: question.category || question.subject || question.topic || '分野未分類',
+      choices: question.choices,
+      answerIndex: question.answer_index,
+      explanation: question.explanation || '',
       selectedAnswer: selectedIndex == null ? '未回答' : question.choices[selectedIndex],
       correctAnswer: question.choices[question.answer_index],
       isCorrect: selectedIndex === question.answer_index,
@@ -195,8 +198,22 @@ function renderQuestionHistory() {
   }
 
   [...history].reverse().forEach((item) => {
+    const canReplay = Array.isArray(item.choices) && Number.isInteger(item.answerIndex);
     const entry = document.createElement('article');
     entry.className = `history-entry ${item.isCorrect ? 'history-correct' : 'history-incorrect'}`;
+    if (canReplay) {
+      entry.classList.add('history-entry-actionable');
+      entry.tabIndex = 0;
+      entry.setAttribute('role', 'button');
+      entry.setAttribute('aria-label', `この問題をもう一度解く: ${item.question}`);
+      entry.addEventListener('click', () => replayHistoryQuestion(item));
+      entry.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          replayHistoryQuestion(item);
+        }
+      });
+    }
 
     const meta = document.createElement('div');
     meta.className = 'history-meta';
@@ -210,8 +227,29 @@ function renderQuestionHistory() {
     answer.textContent = `${item.isCorrect ? '正解' : '不正解'}　あなたの回答: ${item.selectedAnswer}　正解: ${item.correctAnswer}`;
 
     entry.append(meta, question, answer);
+
+    const hint = document.createElement('p');
+    hint.className = 'history-replay-hint';
+    hint.textContent = canReplay ? 'クリックしてもう一度解く' : 'この履歴は再出題データがありません';
+    entry.appendChild(hint);
     historyContainer.appendChild(entry);
   });
+}
+
+function replayHistoryQuestion(item) {
+  resultSection.hidden = false;
+  renderQuiz({
+    title: item.title || '履歴から再挑戦',
+    questions: [{
+      question: item.question,
+      category: item.category,
+      choices: item.choices,
+      answer_index: item.answerIndex,
+      explanation: item.explanation || '',
+      originalIndex: item.questionIndex,
+    }],
+  }, { isRetry: true, isHistoryReplay: true, countAttempt: false });
+  resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 if (historyBtn && historySection) {
@@ -563,6 +601,7 @@ function renderQuiz(quiz, options = {}) {
     answers: Array(questions.length).fill(null),
     currentIndex: 0,
     isRetry: !!options.isRetry,
+    isHistoryReplay: !!options.isHistoryReplay,
     countAttempt: options.countAttempt !== false,
     photoKey,
   };
@@ -575,7 +614,11 @@ function renderQuestion() {
 
   const header = document.createElement("div");
   const title = document.createElement("h3");
-  title.textContent = quizState.isRetry ? "間違えた問題の再挑戦" : quizState.quizTitle;
+  title.textContent = quizState.isHistoryReplay
+    ? '履歴から再挑戦'
+    : quizState.isRetry
+      ? '間違えた問題の再挑戦'
+      : quizState.quizTitle;
   header.appendChild(title);
   const level = document.createElement("p");
   level.textContent = quizState.quizLevel ? `推定レベル: ${quizState.quizLevel}` : "";

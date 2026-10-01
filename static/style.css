@@ -440,6 +440,15 @@ button:disabled {
   box-shadow: 0 12px 24px rgba(51, 70, 240, 0.12);
 }
 
+.home-history-ai-btn {
+  background: #0f766e;
+}
+
+.home-history-ai-btn:hover:not(:disabled) {
+  background: #115e59;
+  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.18);
+}
+
 .mode-switch {
   display: inline-flex;
   align-items: center;

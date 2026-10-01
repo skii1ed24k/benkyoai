@@ -6,6 +6,7 @@ const resultSection = document.getElementById("resultSection");
 const aiResult = document.getElementById("aiResult");
 const quizContainer = document.getElementById("quizContainer");
 const historyBtn = document.getElementById("historyBtn");
+const homeGenerateFromHistoryBtn = document.getElementById("homeGenerateFromHistoryBtn");
 const historySection = document.getElementById("historySection");
 const historyContainer = document.getElementById("historyContainer");
 const historySelectBtn = document.getElementById("historySelectBtn");
@@ -449,6 +450,23 @@ if (historyBtn && historySection) {
     historySection.hidden = !isHidden;
     historyBtn.setAttribute('aria-expanded', String(isHidden));
     if (isHidden) historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+if (homeGenerateFromHistoryBtn && historyBtn && historySection) {
+  homeGenerateFromHistoryBtn.addEventListener('click', () => {
+    historyFilter = 'all';
+    document.querySelectorAll('[data-history-filter]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.historyFilter === 'all'));
+    });
+    if (historySection.hidden) {
+      historySection.hidden = false;
+      historyBtn.setAttribute('aria-expanded', 'true');
+    }
+    if (!historySelectionMode) selectedHistoryEntries.clear();
+    historySelectionMode = true;
+    renderQuestionHistory();
+    historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
 

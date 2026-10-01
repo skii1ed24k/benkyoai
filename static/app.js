@@ -554,13 +554,21 @@ analyzeBtn.addEventListener("click", async () => {
     renderStreakBadge();
     const extracted = await recognizeTextFromFiles(selectedFiles);
     resultSection.hidden = false;
+    const progress = getStoredProgress();
 
     const response = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text: extracted,
-        question_count: getStoredProgress().motivationMode === true ? 3 : 5,
+        question_count: progress.motivationMode === true ? 3 : 5,
+        learning_history: (progress.questionHistory || []).slice(-20).map((item) => ({
+          question: item.question,
+          category: item.category,
+          selectedAnswer: item.selectedAnswer,
+          correctAnswer: item.correctAnswer,
+          isCorrect: item.isCorrect,
+        })),
       }),
     });
 

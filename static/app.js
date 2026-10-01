@@ -13,6 +13,7 @@ const historySelectionCount = document.getElementById("historySelectionCount");
 const historySelectionActions = document.getElementById("historySelectionActions");
 const deleteSelectedHistoryBtn = document.getElementById("deleteSelectedHistoryBtn");
 const replaySelectedHistoryBtn = document.getElementById("replaySelectedHistoryBtn");
+const generateFromHistoryBtn = document.getElementById("generateFromHistoryBtn");
 const motivationToggle = document.getElementById("motivationToggle");
 
 let selectedFiles = [];
@@ -288,6 +289,9 @@ function updateHistorySelectionControls() {
   if (replaySelectedHistoryBtn) {
     replaySelectedHistoryBtn.disabled = !canReplay;
   }
+  if (generateFromHistoryBtn) {
+    generateFromHistoryBtn.disabled = selectedItems.length === 0;
+  }
   document.body.classList.toggle('history-selection-active', historySelectionMode);
 }
 
@@ -346,6 +350,74 @@ if (replaySelectedHistoryBtn) {
       countAttempt: false,
     });
     resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+if (generateFromHistoryBtn) {
+  generateFromHistoryBtn.addEventListener('click', async () => {
+    const selectedItems = getSelectedHistoryItems();
+    if (selectedItems.length === 0) return;
+
+    const progress = getStoredProgress();
+    const learningHistory = selectedItems.map(({ item }) => ({
+      question: item.question,
+      category: item.category,
+      selectedAnswer: item.selectedAnswer,
+      correctAnswer: item.correctAnswer,
+      isCorrect: item.isCorrect,
+    }));
+    const sourceText = selectedItems.map(({ item }, index) => [
+      `履歴問題${index + 1}（${item.category || '分野未分類'}）`,
+      item.question,
+      `正解: ${item.correctAnswer || ''}`,
+      `解説: ${item.explanation || ''}`,
+    ].join('\n')).join('\n\n');
+
+    generateFromHistoryBtn.disabled = true;
+    generateFromHistoryBtn.textContent = '問題を生成中...';
+
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: sourceText,
+          question_count: progress.motivationMode === true ? 3 : 5,
+          learning_history: learningHistory,
+          history_based: true,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '問題の生成に失敗しました。');
+
+      let generatedQuiz = result.ai_result;
+      if (typeof generatedQuiz === 'string') {
+        try {
+          generatedQuiz = JSON.parse(generatedQuiz);
+        } catch (error) {
+          throw new Error('問題を読み取れませんでした。もう一度お試しください。');
+        }
+      }
+      if (!generatedQuiz || !Array.isArray(generatedQuiz.questions) || generatedQuiz.questions.length === 0) {
+        throw new Error('AIが問題を生成できませんでした。もう一度お試しください。');
+      }
+
+      historySelectionMode = false;
+      selectedHistoryEntries.clear();
+      renderQuestionHistory();
+      aiResult.hidden = true;
+      resultSection.hidden = false;
+      renderQuiz({ ...generatedQuiz, title: generatedQuiz.title || '履歴をもとにした問題' });
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+      aiResult.textContent = `エラー: ${error.message || error}`;
+      aiResult.hidden = false;
+      resultSection.hidden = false;
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } finally {
+      generateFromHistoryBtn.textContent = 'AIから問題を作ってもらう';
+      updateHistorySelectionControls();
+    }
   });
 }
 

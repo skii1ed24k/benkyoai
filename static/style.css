@@ -572,6 +572,15 @@ button:disabled {
   background: #3346f0;
 }
 
+.history-selection-actions .generate-history-btn {
+  background: #0f766e;
+}
+
+.history-selection-actions .generate-history-btn:hover:not(:disabled) {
+  background: #115e59;
+  box-shadow: 0 10px 22px rgba(15, 118, 110, 0.2);
+}
+
 .history-filters {
   display: flex;
   flex-wrap: wrap;
@@ -679,6 +688,22 @@ button:disabled {
 .history-empty {
   margin: 0;
   color: #64748b;
+}
+
+@media (max-width: 640px) {
+  body.history-selection-active {
+    padding-bottom: 220px;
+  }
+
+  .history-selection-actions {
+    flex-direction: column;
+    gap: 8px;
+    width: calc(100vw - 24px);
+  }
+
+  .history-selection-actions button {
+    min-height: 46px;
+  }
 }
 
 .card-grid {

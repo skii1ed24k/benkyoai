@@ -1081,6 +1081,23 @@ function showWeaknessAnalysis() {
   const buttonContainer = document.createElement('div');
   buttonContainer.className = 'summary-button-group';
 
+  if (wrongQuestions.length > 0) {
+    const retryBtn = document.createElement('button');
+    retryBtn.type = 'button';
+    retryBtn.textContent = '間違えた問題を解き直す';
+    retryBtn.addEventListener('click', () => {
+      const retryQuestions = wrongQuestions.map(({ q }) => ({ ...q }));
+      renderQuiz({
+        title: quizState.quizTitle,
+        level: quizState.quizLevel,
+        questions: retryQuestions,
+        photoKey: quizState.photoKey,
+      }, { isRetry: true, countAttempt: false });
+      quizContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    buttonContainer.appendChild(retryBtn);
+  }
+
   const finishBtn = document.createElement('button');
   finishBtn.type = 'button';
   finishBtn.className = 'finish-btn';

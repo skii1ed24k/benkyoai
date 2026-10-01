@@ -25,6 +25,7 @@ def build_ai_prompt(text, question_count=3):
         "  \"level\": \"基礎|標準|発展\",\n"
         "  \"questions\": [\n"
         "    {\n"
+        "      \"category\": \"この問題の具体的な分野\",\n"
         "      \"question\": \"問題文\",\n"
         "      \"choices\": [\"選択肢A\", \"選択肢B\", \"選択肢C\", \"選択肢D\"],\n"
         "      \"answer_index\": 0,\n"
@@ -32,7 +33,7 @@ def build_ai_prompt(text, question_count=3):
         "    }\n"
         "  ]\n"
         "}\n"
-        f"上記スキーマに正確に従って、重要な問題を{question_count}問（それぞれ4択）作成してください。\n"
+        f"上記スキーマに正確に従って、重要な問題を{question_count}問（それぞれ4択）作成してください。各問題に内容を表す具体的な分野名をcategoryとして必ず設定してください。\n"
         "出力は有効なJSONでなければなりません。\n"
         "内容:\n" + text
     )

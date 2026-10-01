@@ -129,11 +129,14 @@ function recordPhotoUsage(photoKey, quizTitle, wrongQuestions = []) {
       current.wrongQuestions.push({
         questionIndex: item.idx,
         question: item.q.question,
+        category: item.q.category || item.q.subject || item.q.topic || '分野未分類',
         selectedAnswer: item.selectedAnswer,
         correctAnswer: item.correctAnswer,
+        explanation: item.q.explanation || '',
         date: dateKey,
       });
     });
+    current.wrongQuestions = current.wrongQuestions.slice(-100);
   }
   progress.photos[photoKey] = current;
   saveStoredProgress(progress);
@@ -161,6 +164,7 @@ function saveQuestionHistory() {
       date,
       title: quizState.quizTitle || 'AI問題',
       question: question.question,
+      category: question.category || question.subject || question.topic || '分野未分類',
       selectedAnswer: selectedIndex == null ? '未回答' : question.choices[selectedIndex],
       correctAnswer: question.choices[question.answer_index],
       isCorrect: selectedIndex === question.answer_index,
@@ -690,41 +694,31 @@ function getWrongQuestions() {
 }
 
 function analyzeWeakAreas(wrongQuestions) {
-  const stopWords = new Set([
-    'の', 'は', 'が', 'を', 'に', 'と', 'で', 'た', 'て', 'ている', 'する', 'した', 'など', 'より',
-    'ある', 'ない', 'こと', 'これ', 'それ', 'あれ', 'どれ', '問題', '選択肢', '答え', '解説', 'わかる'
-  ]);
+  const areas = new Map();
 
-  const termCounts = new Map();
-
-  wrongQuestions.forEach(({ q }) => {
-    const source = `${q.question} ${q.explanation || ''}`;
-    const matches = source.match(/[A-Za-z一-龠ぁ-んァ-ン0-9]+/g) || [];
-
-    matches.forEach((word) => {
-      const normalized = word
-        .replace(/[0-9]/g, '')
-        .replace(/[A-Za-z]{1,2}/g, '')
-        .trim();
-
-      if (!normalized || normalized.length < 2 || stopWords.has(normalized.toLowerCase())) {
-        return;
-      }
-
-      termCounts.set(normalized, (termCounts.get(normalized) || 0) + 1);
-    });
+  quizState.questions.forEach((question) => {
+    const category = String(question.category || question.subject || question.topic || '分野未分類').trim();
+    const stats = areas.get(category) || { total: 0, incorrect: 0 };
+    stats.total += 1;
+    areas.set(category, stats);
   });
 
-  const topTerms = [...termCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([term]) => term);
+  wrongQuestions.forEach(({ q }) => {
+    const category = String(q.category || q.subject || q.topic || '分野未分類').trim();
+    const stats = areas.get(category) || { total: 0, incorrect: 0 };
+    stats.incorrect += 1;
+    areas.set(category, stats);
+  });
 
-  if (topTerms.length > 0) {
-    return topTerms.map((term, index) => `苦手分野 ${index + 1}: ${term}`);
-  }
-
-  return wrongQuestions.map((item, index) => `間違えた問題 ${index + 1}: ${item.q.question.slice(0, 24)}...`);
+  return [...areas.entries()]
+    .filter(([, stats]) => stats.incorrect > 0)
+    .map(([category, stats]) => ({
+      category,
+      ...stats,
+      accuracy: Math.round(((stats.total - stats.incorrect) / stats.total) * 100),
+    }))
+    .sort((a, b) => a.accuracy - b.accuracy)
+    .map((area) => `${area.category}: ${area.incorrect}/${area.total}問を間違えました（正答率 ${area.accuracy}%）`);
 }
 
 function showWeaknessAnalysis() {
@@ -806,17 +800,6 @@ function showWeaknessAnalysis() {
   const buttonContainer = document.createElement('div');
   buttonContainer.className = 'summary-button-group';
 
-  const retryBtn = document.createElement('button');
-  retryBtn.type = 'button';
-  retryBtn.textContent = wrongQuestions.length === 0 ? 'もう一度この問題を解く' : '間違えた問題をもう一度解く';
-  retryBtn.addEventListener('click', () => {
-    const retryQuestions = wrongQuestions.length > 0
-      ? wrongQuestions.map(item => ({ ...item.q }))
-      : quizState.questions.map(q => ({ ...q }));
-    renderQuiz({ title: quizState.quizTitle, level: quizState.quizLevel, questions: retryQuestions, photoKey: quizState.photoKey }, { isRetry: true, countAttempt: false });
-  });
-  buttonContainer.appendChild(retryBtn);
-
   const finishBtn = document.createElement('button');
   finishBtn.type = 'button';
   finishBtn.className = 'finish-btn';
@@ -832,6 +815,7 @@ function showWeaknessAnalysis() {
 
   analysisWrap.appendChild(buttonContainer);
   quizContainer.appendChild(analysisWrap);
+  analysisWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function showSummary() {

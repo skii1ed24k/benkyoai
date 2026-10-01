@@ -8,11 +8,15 @@ const quizContainer = document.getElementById("quizContainer");
 const historyBtn = document.getElementById("historyBtn");
 const historySection = document.getElementById("historySection");
 const historyContainer = document.getElementById("historyContainer");
+const historySelectBtn = document.getElementById("historySelectBtn");
+const historySelectionCount = document.getElementById("historySelectionCount");
 const motivationToggle = document.getElementById("motivationToggle");
 
 let selectedFiles = [];
 let quizState = null;
 let historyFilter = 'all';
+let historySelectionMode = false;
+const selectedHistoryEntries = new Set();
 const DEVICE_STORAGE_KEY = 'benkyoai-progress';
 const DEVICE_COOKIE_KEY = 'benkyoai-progress-fallback';
 
@@ -182,8 +186,10 @@ function saveQuestionHistory() {
 function renderQuestionHistory() {
   if (!historyContainer) return;
   const history = readDeviceProgressSummary().questionHistory
-    .filter((item) => historyFilter === 'all' || item.isCorrect === (historyFilter === 'correct'));
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => historyFilter === 'all' || item.isCorrect === (historyFilter === 'correct'));
   historyContainer.innerHTML = '';
+  updateHistorySelectionControls();
 
   if (history.length === 0) {
     const emptyMessage = document.createElement('p');
@@ -197,11 +203,27 @@ function renderQuestionHistory() {
     return;
   }
 
-  [...history].reverse().forEach((item) => {
+  [...history].reverse().forEach(({ item, index }) => {
     const canReplay = Array.isArray(item.choices) && Number.isInteger(item.answerIndex);
     const entry = document.createElement('article');
     entry.className = `history-entry ${item.isCorrect ? 'history-correct' : 'history-incorrect'}`;
-    if (canReplay) {
+    if (historySelectionMode) {
+      entry.classList.add('history-entry-selectable');
+      if (selectedHistoryEntries.has(index)) entry.classList.add('history-entry-selected');
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'history-entry-checkbox';
+      checkbox.checked = selectedHistoryEntries.has(index);
+      checkbox.setAttribute('aria-label', `問題履歴を選択: ${item.question}`);
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) selectedHistoryEntries.add(index);
+        else selectedHistoryEntries.delete(index);
+        entry.classList.toggle('history-entry-selected', checkbox.checked);
+        updateHistorySelectionControls();
+      });
+      entry.appendChild(checkbox);
+    } else if (canReplay) {
       entry.classList.add('history-entry-actionable');
       entry.tabIndex = 0;
       entry.setAttribute('role', 'button');
@@ -230,9 +252,32 @@ function renderQuestionHistory() {
 
     const hint = document.createElement('p');
     hint.className = 'history-replay-hint';
-    hint.textContent = canReplay ? 'クリックしてもう一度解く' : 'この履歴は再出題データがありません';
+    hint.textContent = historySelectionMode
+      ? 'チェックして複数選択'
+      : canReplay
+        ? 'クリックしてもう一度解く'
+        : 'この履歴は再出題データがありません';
     entry.appendChild(hint);
     historyContainer.appendChild(entry);
+  });
+}
+
+function updateHistorySelectionControls() {
+  if (historySelectBtn) {
+    historySelectBtn.textContent = historySelectionMode ? 'キャンセル' : '選択';
+    historySelectBtn.setAttribute('aria-pressed', String(historySelectionMode));
+  }
+  if (historySelectionCount) {
+    historySelectionCount.hidden = !historySelectionMode;
+    historySelectionCount.textContent = `${selectedHistoryEntries.size}件選択中`;
+  }
+}
+
+if (historySelectBtn) {
+  historySelectBtn.addEventListener('click', () => {
+    historySelectionMode = !historySelectionMode;
+    if (!historySelectionMode) selectedHistoryEntries.clear();
+    renderQuestionHistory();
   });
 }
 

@@ -509,6 +509,22 @@ button:disabled {
   margin: 0 0 18px;
 }
 
+.history-select-btn {
+  min-height: 42px;
+  padding: 0 16px;
+  background: #ffffff;
+  color: #3346f0;
+  border: 1px solid rgba(51, 70, 240, 0.3);
+  border-radius: 10px;
+}
+
+.history-selection-count {
+  margin: -8px 0 14px;
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .history-filters {
   display: flex;
   flex-wrap: wrap;
@@ -549,6 +565,30 @@ button:disabled {
   transform: translateY(-1px);
   outline: 2px solid rgba(51, 70, 240, 0.35);
   outline-offset: 2px;
+}
+
+.history-entry-selectable {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+}
+
+.history-entry-selected {
+  background: #eef2ff;
+  outline: 2px solid rgba(51, 70, 240, 0.35);
+}
+
+.history-entry-checkbox {
+  grid-row: 1 / span 4;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: #3346f0;
+}
+
+.history-entry-selectable .history-replay-hint {
+  grid-column: 2;
 }
 
 .history-entry + .history-entry {

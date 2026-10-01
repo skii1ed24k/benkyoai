@@ -167,11 +167,14 @@ function saveQuestionHistory() {
   if (!quizState || !Array.isArray(quizState.questions)) return;
 
   const progress = getStoredProgress();
-  const date = new Date().toLocaleDateString('ja-JP');
+  const answeredAt = new Date();
+  const date = answeredAt.toLocaleDateString('ja-JP');
+  const time = answeredAt.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
   const entries = quizState.questions.map((question, index) => {
     const selectedIndex = quizState.answers[index];
     return {
       date,
+      time,
       title: quizState.quizTitle || 'AI問題',
       question: question.question,
       category: question.category || question.subject || question.topic || '分野未分類',
@@ -244,7 +247,7 @@ function renderQuestionHistory() {
 
     const meta = document.createElement('div');
     meta.className = 'history-meta';
-    meta.textContent = `${item.date} ・ ${item.title}`;
+    meta.textContent = `${item.date}${item.time ? ` ${item.time}` : ''} ・ ${item.title}`;
 
     const question = document.createElement('h3');
     question.textContent = item.question;

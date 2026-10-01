@@ -19,6 +19,7 @@ def build_ai_prompt(text, question_count=3):
     return (
         "以下の教科書の内容を読み取り、厳密なJSONのみを出力してください。\n"
         "余分な説明や会話文を含めないでください。\n"
+        "title、category、question、choices、explanationの値は、元の本文の言語にかかわらず必ず日本語で作成してください。\n"
         "出力スキーマ: \n"
         "{\n"
         "  \"title\": \"教科書名または要約タイトル\",\n"

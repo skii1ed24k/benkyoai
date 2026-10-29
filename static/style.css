@@ -522,6 +522,13 @@ button:disabled {
   margin: 0 0 18px;
 }
 
+.history-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .history-select-btn {
   min-height: 42px;
   padding: 0 16px;
@@ -529,6 +536,10 @@ button:disabled {
   color: #3346f0;
   border: 1px solid rgba(51, 70, 240, 0.3);
   border-radius: 10px;
+}
+
+.history-select-all-btn[hidden] {
+  display: none;
 }
 
 .history-selection-count {

@@ -10,6 +10,7 @@ const homeGenerateFromHistoryBtn = document.getElementById("homeGenerateFromHist
 const historySection = document.getElementById("historySection");
 const historyContainer = document.getElementById("historyContainer");
 const historySelectBtn = document.getElementById("historySelectBtn");
+const historySelectAllBtn = document.getElementById("historySelectAllBtn");
 const historySelectionCount = document.getElementById("historySelectionCount");
 const historySelectionActions = document.getElementById("historySelectionActions");
 const deleteSelectedHistoryBtn = document.getElementById("deleteSelectedHistoryBtn");
@@ -280,6 +281,9 @@ function updateHistorySelectionControls() {
     historySelectBtn.textContent = historySelectionMode ? 'キャンセル' : '選択';
     historySelectBtn.setAttribute('aria-pressed', String(historySelectionMode));
   }
+  if (historySelectAllBtn) {
+    historySelectAllBtn.hidden = !historySelectionMode;
+  }
   if (historySelectionCount) {
     historySelectionCount.hidden = !historySelectionMode;
     historySelectionCount.textContent = `${selectedItems.length}件選択中`;
@@ -311,6 +315,17 @@ if (historySelectBtn) {
   historySelectBtn.addEventListener('click', () => {
     historySelectionMode = !historySelectionMode;
     if (!historySelectionMode) selectedHistoryEntries.clear();
+    renderQuestionHistory();
+  });
+}
+
+if (historySelectAllBtn) {
+  historySelectAllBtn.addEventListener('click', () => {
+    const history = getStoredProgress().questionHistory;
+    history.forEach((item, index) => {
+      const matchesFilter = historyFilter === 'all' || item.isCorrect === (historyFilter === 'correct');
+      if (matchesFilter) selectedHistoryEntries.add(index);
+    });
     renderQuestionHistory();
   });
 }

@@ -50,7 +50,8 @@ def build_ai_prompt(text, question_count=3, learning_history=None, history_based
         "  ]\n"
         "}\n"
         f"上記スキーマに正確に従って、重要な問題を{question_count}問（それぞれ4択）作成してください。各問題に内容を表す具体的な分野名をcategoryとして必ず設定してください。\n"
-        "出力は有効なJSONでなければなりません。\n"
+        + ("問題1〜6は基礎〜標準、問題7〜10は応用・分析を要する発展的な内容にし、後半ほど明確に難しくしてください。問題番号順に難易度を上げてください。\n" if question_count == 10 else "")
+        + "出力は有効なJSONでなければなりません。\n"
         + history_context
         + ("選択した問題の内容:\n" if history_based else "今回の教材内容:\n")
         + text
@@ -139,7 +140,7 @@ def generate_questions_from_text(text, question_count=3, learning_history=None, 
                 "generationConfig": {
                     "temperature": 0.7,
                     "topP": 0.9,
-                    "maxOutputTokens": 1200,
+                    "maxOutputTokens": 6000 if question_count == 10 else 1200,
                     "responseMimeType": "application/json",
                 },
             }
@@ -236,6 +237,16 @@ def generate_questions_from_text(text, question_count=3, learning_history=None, 
         questions.extend([
             "4. 学んだ内容を別の場面で使うとしたら、どのように使えますか？",
             "5. この内容でまだ疑問に思う点は何ですか？",
+        ])
+    elif question_count == 10:
+        questions.extend([
+            "4. 学んだ内容を別の場面で使うとしたら、どのように使えますか？",
+            "5. この内容で特に重要な点を一つ選び、その理由を説明してください。",
+            "6. 学んだ内容同士には、どのような関係がありますか？",
+            "7. 本文の考え方を新しい事例に当てはめると、どのような結果になりますか？",
+            "8. 条件を一つ変えた場合、結論や仕組みにどのような影響が出ますか？",
+            "9. 本文の説明を根拠に、二つの考え方の共通点と相違点を分析してください。",
+            "10. 本文の主張を別の立場から検討し、根拠を挙げて妥当性を評価してください。",
         ])
     level = "基礎"
     if len(text) > 400:
@@ -365,7 +376,8 @@ def analyze():
         text = payload.get("text", "").strip()
         if not text:
             return jsonify({"error": "テキストがありません。"}), 400
-        question_count = 5 if payload.get("question_count") == 5 else 3
+        requested_count = payload.get("question_count")
+        question_count = requested_count if requested_count in (3, 5, 10) else 3
         learning_history = sanitize_learning_history(payload.get("learning_history"))
         history_based = payload.get("history_based") is True
         if history_based and not learning_history:

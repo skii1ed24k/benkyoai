@@ -90,6 +90,13 @@ body.history-selection-active {
   width: 142px;
   height: 172px;
   animation: mascot-float 3.8s ease-in-out infinite;
+  cursor: pointer;
+}
+
+.mascot:focus-visible {
+  outline: 3px solid #f2ae44;
+  outline-offset: 6px;
+  border-radius: 48%;
 }
 
 .mascot-head {
@@ -149,6 +156,33 @@ body.history-selection-active {
   height: 5px;
   border-radius: 50%;
   background: #fff;
+}
+
+.mascot-eye::before,
+.mascot-eye::after {
+  content: "";
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  clip-path: polygon(50% 0, 66% 29%, 100% 49%, 88% 78%, 72% 100%, 25% 94%, 5% 70%, 20% 45%, 38% 28%);
+}
+
+.mascot-eye::before {
+  top: -34px;
+  width: 24px;
+  height: 40px;
+  background: linear-gradient(0deg, #ff3d1f 0%, #ff8a24 52%, #ffe168 100%);
+  filter: drop-shadow(0 0 7px rgba(255, 74, 30, 0.9));
+  animation: eye-flame 420ms ease-in-out infinite alternate;
+}
+
+.mascot-eye::after {
+  top: -25px;
+  width: 12px;
+  height: 26px;
+  background: #fff2a1;
+  animation: eye-flame 320ms ease-in-out infinite alternate-reverse;
 }
 
 .mascot-beak {
@@ -259,6 +293,11 @@ body.history-selection-active {
   50% { opacity: 1; transform: scale(1.1); }
 }
 
+@keyframes eye-flame {
+  from { transform: translateX(-50%) scaleY(0.9) rotate(-4deg); }
+  to { transform: translateX(-50%) scaleY(1.12) rotate(4deg); }
+}
+
 @keyframes speech-appear {
   from { opacity: 0; transform: translateX(-50%) translateY(6px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -271,6 +310,169 @@ body.history-selection-active {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.78rem;
+}
+
+body.special-mode {
+  background: radial-gradient(circle at top, rgba(151, 42, 34, 0.32), transparent 38%),
+    linear-gradient(180deg, #171316 0%, #24191b 100%);
+  color: #f7e9e5;
+}
+
+body.special-mode .container {
+  background: rgba(31, 25, 29, 0.97);
+  border-color: rgba(255, 131, 77, 0.18);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+}
+
+body.special-mode .hero h1,
+body.special-mode .lead,
+body.special-mode .meta-card strong,
+body.special-mode .history-section h2,
+body.special-mode .full-card h3,
+body.special-mode .note,
+body.special-mode .history-entry h3 {
+  color: #f7e9e5;
+}
+
+body.special-mode .eyebrow,
+body.special-mode .mascot-name {
+  color: #ff9a61;
+}
+
+body.special-mode .meta-card,
+body.special-mode .history-section,
+body.special-mode .card,
+body.special-mode .full-card {
+  background: #292126;
+  border-color: rgba(255, 153, 111, 0.16);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+}
+
+body.special-mode .meta-card span,
+body.special-mode .history-meta,
+body.special-mode .history-answer,
+body.special-mode .history-replay-hint,
+body.special-mode .history-empty {
+  color: #cbb9b8;
+}
+
+body.special-mode .status-badge {
+  background: #3a2a31;
+  color: #f7e9e5;
+}
+
+body.special-mode .mode-switch {
+  color: #e7d5d2;
+}
+
+body.special-mode .history-select-btn,
+body.special-mode .history-btn {
+  background: #352a31;
+  color: #ffb18a;
+  border-color: rgba(255, 153, 111, 0.35);
+}
+
+body.special-mode .history-selection-count {
+  color: #e7d5d2;
+}
+
+body.special-mode .history-selection-actions {
+  background: rgba(41, 32, 38, 0.97);
+  border-color: rgba(255, 153, 111, 0.25);
+}
+
+body.special-mode .history-filters button {
+  background: #3a2d34;
+  color: #ead9d6;
+  border-color: #634951;
+}
+
+body.special-mode .history-filters button[aria-pressed="true"] {
+  background: #a64e3d;
+  border-color: #d66b48;
+  color: #ffffff;
+}
+
+body.special-mode .history-entry {
+  background: #33292e;
+}
+
+body.special-mode .history-entry-actionable:hover,
+body.special-mode .history-entry-actionable:focus-visible,
+body.special-mode .history-entry-selected {
+  background: #493239;
+  outline-color: rgba(255, 153, 111, 0.55);
+}
+
+body.special-mode .history-entry-checkbox {
+  accent-color: #ff8155;
+}
+
+body.special-mode pre {
+  background: #251e23;
+  border-color: rgba(255, 153, 111, 0.2);
+  color: #f7e9e5;
+}
+
+body.special-mode .quiz-question {
+  background: #34262c;
+  border-color: rgba(255, 153, 111, 0.2);
+  color: #f7e9e5;
+}
+
+body.special-mode .choices button {
+  background: #45343a;
+  border-color: #76535a;
+  color: #fff5f0;
+  box-shadow: none;
+}
+
+body.special-mode .choices button:hover:not(:disabled) {
+  background: #5a3d42;
+}
+
+body.special-mode .mascot-speech {
+  background: #3a2526;
+  border-color: #f07b4f;
+  color: #ffe3d4;
+}
+
+body.special-mode .mascot-speech::after {
+  background: #3a2526;
+  border-color: #f07b4f;
+}
+
+body.special-mode .mascot-eye {
+  background: #321b1c;
+  border-color: #ff7045;
+  box-shadow: 0 0 12px rgba(255, 74, 30, 0.6);
+}
+
+body.special-mode .mascot-eye span {
+  display: none;
+}
+
+body.special-mode .mascot-eye::before,
+body.special-mode .mascot-eye::after {
+  display: block;
+}
+
+body.special-mode .mascot-head {
+  background: #a94745;
+  box-shadow: inset 10px 8px 0 rgba(255, 255, 255, 0.08), 0 10px 24px rgba(194, 54, 43, 0.3);
+}
+
+body.special-mode .mascot-body {
+  background: #873b40;
+}
+
+body.special-mode .mascot-tuft,
+body.special-mode .mascot-wing {
+  background: #6f3039;
+}
+
+body.special-mode .mascot-spark {
+  color: #ff7654;
 }
 
 h1 {

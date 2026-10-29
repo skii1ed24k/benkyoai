@@ -17,14 +17,56 @@ const deleteSelectedHistoryBtn = document.getElementById("deleteSelectedHistoryB
 const replaySelectedHistoryBtn = document.getElementById("replaySelectedHistoryBtn");
 const generateFromHistoryBtn = document.getElementById("generateFromHistoryBtn");
 const motivationToggle = document.getElementById("motivationToggle");
+const mascotCharacter = document.getElementById("mascotCharacter");
+const mascotSpeech = document.getElementById("mascotSpeech");
 
 let selectedFiles = [];
 let quizState = null;
 let historyFilter = 'all';
 let historySelectionMode = false;
+let mascotTapCount = 0;
+let mascotTapTimer = null;
+let specialModeActive = false;
 const selectedHistoryEntries = new Set();
 const DEVICE_STORAGE_KEY = 'benkyoai-progress';
 const DEVICE_COOKIE_KEY = 'benkyoai-progress-fallback';
+
+function setSpecialMode(active) {
+  specialModeActive = active;
+  document.body.classList.toggle('special-mode', active);
+  mascotCharacter.setAttribute('aria-pressed', String(active));
+  mascotCharacter.setAttribute('aria-label', active
+    ? 'ミモ、タップして通常モードに戻る'
+    : 'ミモ、5回タップで特別モード');
+  mascotSpeech.textContent = active ? '特別モード！難問に挑戦！' : '通常モードに戻ったよ！';
+}
+
+if (mascotCharacter) {
+  mascotCharacter.addEventListener('click', () => {
+    window.clearTimeout(mascotTapTimer);
+    if (specialModeActive) {
+      mascotTapCount = 0;
+      setSpecialMode(false);
+      return;
+    }
+
+    mascotTapCount += 1;
+    if (mascotTapCount >= 5) {
+      mascotTapCount = 0;
+      setSpecialMode(true);
+      return;
+    }
+    mascotTapTimer = window.setTimeout(() => {
+      mascotTapCount = 0;
+    }, 1800);
+  });
+  mascotCharacter.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      mascotCharacter.click();
+    }
+  });
+}
 
 function getLocalDateKey(date = new Date()) {
   const year = date.getFullYear();
@@ -669,7 +711,7 @@ analyzeBtn.addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text: extracted,
-        question_count: progress.motivationMode === true ? 3 : 5,
+        question_count: specialModeActive ? 10 : progress.motivationMode === true ? 3 : 5,
         learning_history: (progress.questionHistory || []).slice(-20).map((item) => ({
           question: item.question,
           category: item.category,

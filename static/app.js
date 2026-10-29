@@ -27,6 +27,7 @@ let historySelectionMode = false;
 let mascotTapCount = 0;
 let mascotTapTimer = null;
 let specialModeActive = false;
+let secretTapPromptPending = Math.random() < 0.05;
 const selectedHistoryEntries = new Set();
 const DEVICE_STORAGE_KEY = 'benkyoai-progress';
 const DEVICE_COOKIE_KEY = 'benkyoai-progress-fallback';
@@ -555,13 +556,18 @@ function renderStreakBadge() {
 
   const mascotSpeech = document.getElementById('mascotSpeech');
   if (mascotSpeech) {
-    mascotSpeech.textContent = motivationMode
-      ? (streak >= 2
-        ? `今日は${streak}日連続ログイン！この調子で満点を目指そう！`
-        : 'ミモが応援するよ！まずは一問、始めてみよう！')
-      : (streak >= 2
-        ? `今日は${streak}日連続ログインだね！`
-        : '今日も頑張ろう！');
+    if (secretTapPromptPending) {
+      mascotSpeech.textContent = '僕を5回連続で触ってみて';
+      secretTapPromptPending = false;
+    } else {
+      mascotSpeech.textContent = motivationMode
+        ? (streak >= 2
+          ? `今日は${streak}日連続ログイン！この調子で満点を目指そう！`
+          : 'ミモが応援するよ！まずは一問、始めてみよう！')
+        : (streak >= 2
+          ? `今日は${streak}日連続ログインだね！`
+          : '今日も頑張ろう！');
+    }
   }
 }
 

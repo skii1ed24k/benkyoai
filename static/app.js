@@ -6,6 +6,7 @@ const resultSection = document.getElementById("resultSection");
 const aiResult = document.getElementById("aiResult");
 const quizContainer = document.getElementById("quizContainer");
 const historyBtn = document.getElementById("historyBtn");
+const weakPracticeBtn = document.getElementById("weakPracticeBtn");
 const homeGenerateFromHistoryBtn = document.getElementById("homeGenerateFromHistoryBtn");
 const historySection = document.getElementById("historySection");
 const historyContainer = document.getElementById("historyContainer");
@@ -233,6 +234,44 @@ function saveQuestionHistory() {
 
   progress.questionHistory = [...(progress.questionHistory || []), ...entries].slice(-100);
   saveStoredProgress(progress);
+  updateWeakPracticeButton();
+}
+
+function getWeakQuestionCandidates() {
+  const history = getStoredProgress().questionHistory || [];
+  const questionsByText = new Map();
+
+  history.forEach((item, index) => {
+    const key = typeof item.question === 'string' ? item.question.replace(/\s+/g, ' ').trim() : '';
+    if (!key || !Array.isArray(item.choices) || !Number.isInteger(item.answerIndex)) return;
+
+    const record = questionsByText.get(key) || {
+      item,
+      incorrectCount: 0,
+      correctCount: 0,
+      lastIndex: index,
+    };
+    if (item.isCorrect) record.correctCount += 1;
+    else record.incorrectCount += 1;
+    record.item = item;
+    record.lastIndex = index;
+    questionsByText.set(key, record);
+  });
+
+  return [...questionsByText.values()]
+    .map((record) => ({ ...record, score: record.incorrectCount - record.correctCount }))
+    .filter((record) => record.score > 0)
+    .sort((a, b) => b.score - a.score || b.lastIndex - a.lastIndex)
+    .slice(0, 5);
+}
+
+function updateWeakPracticeButton() {
+  if (!weakPracticeBtn) return;
+  const hasWeakQuestions = getWeakQuestionCandidates().length > 0;
+  weakPracticeBtn.disabled = !hasWeakQuestions;
+  weakPracticeBtn.title = hasWeakQuestions
+    ? '間違いが多い問題を優先して解き直します'
+    : '間違えた問題が記録されると利用できます';
 }
 
 function renderQuestionHistory() {
@@ -242,6 +281,7 @@ function renderQuestionHistory() {
     .filter(({ item }) => historyFilter === 'all' || item.isCorrect === (historyFilter === 'correct'));
   historyContainer.innerHTML = '';
   updateHistorySelectionControls();
+  updateWeakPracticeButton();
 
   if (history.length === 0) {
     const emptyMessage = document.createElement('p');
@@ -531,6 +571,31 @@ if (homeGenerateFromHistoryBtn && historyBtn && historySection) {
   });
 }
 
+if (weakPracticeBtn) {
+  weakPracticeBtn.addEventListener('click', () => {
+    const weakQuestions = getWeakQuestionCandidates();
+    if (weakQuestions.length === 0) return;
+
+    const questions = weakQuestions.map(({ item }, index) => ({
+      question: item.question,
+      category: item.category || '分野未分類',
+      choices: item.choices,
+      answer_index: item.answerIndex,
+      explanation: item.explanation || '',
+      originalIndex: index,
+    }));
+
+    aiResult.hidden = true;
+    resultSection.hidden = false;
+    renderQuiz({ title: '苦手問題の再チェック', questions }, {
+      isRetry: true,
+      isWeaknessPractice: true,
+      countAttempt: false,
+    });
+    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
 document.querySelectorAll('[data-history-filter]').forEach((button) => {
   button.addEventListener('click', () => {
     historyFilter = button.dataset.historyFilter;
@@ -770,6 +835,7 @@ const photoAttemptHistory = new Map();
 const photoFingerprintCache = new Map();
 
 renderStreakBadge();
+updateWeakPracticeButton();
 
 function buildPhotoFingerprint(file, extraText = '') {
   const seed = (file ? `${file.name || 'photo'}-${file.size || 0}-${file.lastModified || 0}-${file.type || 'unknown'}` : '') + (extraText || '');
@@ -884,6 +950,7 @@ function renderQuiz(quiz, options = {}) {
     currentIndex: 0,
     isRetry: !!options.isRetry,
     isHistoryReplay: !!options.isHistoryReplay,
+    isWeaknessPractice: !!options.isWeaknessPractice,
     countAttempt: options.countAttempt !== false,
     photoKey,
   };
@@ -898,6 +965,8 @@ function renderQuestion() {
   const title = document.createElement("h3");
   title.textContent = quizState.isHistoryReplay
     ? '履歴から再挑戦'
+    : quizState.isWeaknessPractice
+      ? '苦手問題の再チェック'
     : quizState.isRetry
       ? '間違えた問題の再挑戦'
       : quizState.quizTitle;

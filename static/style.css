@@ -646,6 +646,15 @@ button:disabled {
   background: #0f766e;
 }
 
+.weak-practice-btn {
+  background: #b4533c;
+}
+
+.weak-practice-btn:hover:not(:disabled) {
+  background: #923d2d;
+  box-shadow: 0 12px 24px rgba(180, 83, 60, 0.2);
+}
+
 .home-history-ai-btn:hover:not(:disabled) {
   background: #115e59;
   box-shadow: 0 12px 24px rgba(15, 118, 110, 0.18);
